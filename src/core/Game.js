@@ -139,8 +139,8 @@ export class Game {
       mk('coffee', [-12, 6], 'og4')
     ];
 
-    // Cafeteria upgrade terminal (Star Café on the 4th floor).
-    this.shopPoint = { x: 6, z: 8, r: 2.8, floor: 'og4' };
+    // Cafeteria upgrade terminal (Star Café on the 6th floor).
+    this.shopPoint = { x: 4.8, z: -8, r: 2.8, floor: 'og6' };
 
     this._applyFloorVisibility('outside');
   }
