@@ -62,6 +62,7 @@ export class Game {
     this.story = new Story();
     this.unlockedFloors = new Set(['eg']);
     this._enteredBuilding = false;
+    this.highscoreKey = 'starfigame_highscores_v1';
 
     this._tmpTarget = new THREE.Vector3();
   }
@@ -496,7 +497,8 @@ export class Game {
     this.audio.playSfx('select');
     setTimeout(() => {
       this.world.setArea(area);
-      this.player.setPosition(ELEVATOR_EXIT.x, ELEVATOR_EXIT.z);
+      const spawn = this._pickTravelSpawn();
+      this.player.setPosition(spawn.x, spawn.z);
       this.player.heading = ELEVATOR_EXIT.heading;
       this.camYaw = ELEVATOR_EXIT.heading;
       this._applyFloorVisibility(area);
@@ -508,6 +510,40 @@ export class Game {
       this.input.requestPointerLock();
       if (after) after();
     }, 420);
+  }
+
+  /** Choose an elevator exit spot where the camera is less likely to spawn inside geometry. */
+  _pickTravelSpawn() {
+    const baseX = ELEVATOR_EXIT.x;
+    const baseZ = ELEVATOR_EXIT.z;
+    const candidates = [
+      [0, 0],
+      [0, -1.2],
+      [0, -2.2],
+      [-1.3, -1.1],
+      [1.3, -1.1],
+      [-2.3, -1.8],
+      [2.3, -1.8]
+    ];
+
+    let best = { x: baseX, z: baseZ, score: Number.POSITIVE_INFINITY };
+    for (const [dx, dz] of candidates) {
+      const pos = this.world.resolveCollision(baseX + dx, baseZ + dz, this.player.radius);
+      const score = this._cameraSpawnPenalty(pos.x, pos.z);
+      if (score < best.score) best = { x: pos.x, z: pos.z, score };
+    }
+    return best;
+  }
+
+  _cameraSpawnPenalty(px, pz) {
+    const horiz = Math.cos(this.camPitch) * this.camDist;
+    const desiredCamX = px - Math.sin(ELEVATOR_EXIT.heading) * horiz;
+    const desiredCamZ = pz + Math.cos(ELEVATOR_EXIT.heading) * horiz;
+    const resolvedCam = this.world.resolveCollision(desiredCamX, desiredCamZ, 0.4);
+    const cameraPush = Math.hypot(resolvedCam.x - desiredCamX, resolvedCam.z - desiredCamZ);
+    const elevatorDist = Math.hypot(ELEVATOR.x - px, ELEVATOR.z - pz);
+    // Prefer free camera space first; then keep spawn reasonably near the elevator.
+    return cameraPush * 100 + Math.abs(elevatorDist - 5.5);
   }
 
   _onArrive(area) {
@@ -714,13 +750,93 @@ export class Game {
     this.hud.hide();
     this.audio.stopMusic();
     this.audio.playSfx('win');
+    const entry = this._buildScoreEntry();
+    const list = this._saveHighscore(entry);
+    this._renderHighscores(list, entry.id);
     document.getElementById('end-title').textContent = 'RELEASE GERETTET';
     document.getElementById('end-title').setAttribute('data-text', 'RELEASE GERETTET');
     document.getElementById('end-text').innerHTML =
       `Stark gemacht, <strong>${this.playerName}</strong>! Der Master-Commit ist durch, die Pipeline leuchtet grün ` +
-      `und der Ur-Bug ist Geschichte. Du hast <strong>${this.inventory.coins} Jira-Münzen</strong> gesammelt und ` +
-      `dich von Level 1 bis zum Boss durchgekämpft. Zeit für ein wohlverdientes Feierabend-Getränk! 🍻`;
+      `und der Ur-Bug ist Geschichte. Du hast <strong>${this.inventory.coins} Jira-Münzen</strong> gesammelt, ` +
+      `<strong>${entry.score} Punkte</strong> erzielt und dich von Level 1 bis zum Boss durchgekämpft. ` +
+      `Zeit für ein wohlverdientes Feierabend-Getränk! 🍻`;
     document.getElementById('end-screen').classList.remove('hidden');
+  }
+
+  _buildScoreEntry() {
+    const remaining = Math.max(0, Math.floor(this.timeBudget - this.elapsed));
+    const score = Math.max(0, Math.round(this.inventory.coins * 12 + this.focus * 4 + remaining));
+    return {
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      name: this.playerName,
+      score,
+      coins: this.inventory.coins,
+      focus: this.focus,
+      remaining,
+      createdAt: Date.now()
+    };
+  }
+
+  _saveHighscore(entry) {
+    let list = [];
+    try {
+      const raw = localStorage.getItem(this.highscoreKey);
+      const parsed = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(parsed)) list = parsed;
+    } catch {
+      list = [];
+    }
+
+    list.push(entry);
+    list = list
+      .filter((x) => x && typeof x.score === 'number' && typeof x.name === 'string')
+      .sort((a, b) => (b.score - a.score) || ((b.createdAt || 0) - (a.createdAt || 0)))
+      .slice(0, 10);
+
+    try {
+      localStorage.setItem(this.highscoreKey, JSON.stringify(list));
+    } catch {
+      // ignore storage issues (private mode / quota)
+    }
+    return list;
+  }
+
+  _renderHighscores(list, currentId) {
+    const root = document.getElementById('highscore-list');
+    if (!root) return;
+    root.innerHTML = '';
+    if (!list.length) {
+      const li = document.createElement('li');
+      li.className = 'highscore-empty';
+      li.textContent = 'Noch keine Einträge vorhanden.';
+      root.appendChild(li);
+      return;
+    }
+
+    list.forEach((entry, idx) => {
+      const li = document.createElement('li');
+      li.className = 'highscore-item' + (entry.id === currentId ? ' is-current' : '');
+
+      const rank = document.createElement('span');
+      rank.className = 'rank';
+      rank.textContent = `#${idx + 1}`;
+
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = entry.name;
+
+      const meta = document.createElement('span');
+      meta.className = 'meta';
+      const coins = Number(entry.coins || 0);
+      meta.textContent = `${coins} 🪙`;
+
+      const score = document.createElement('span');
+      score.className = 'score';
+      score.textContent = `${Math.round(Number(entry.score || 0))} pts`;
+
+      li.append(rank, name, meta, score);
+      root.appendChild(li);
+    });
   }
 
   // ============================================================ helpers

@@ -13,6 +13,8 @@ export class Player {
     this.speedMul = 1; // permanent upgrades (espresso)
     this.sprintMul = 1.8;
     this.sprintBoost = 0; // temporary boost timer from coffee pickups
+    this.accel = 20;
+    this.decel = 26;
 
     const built = buildCharacter(0x00e5ff);
     this.model = built.group;
@@ -54,32 +56,50 @@ export class Player {
     let dir = new THREE.Vector3(ix, 0, iz);
     this.moving = dir.lengthSq() > 0;
 
+    // Smooth velocity to avoid twitchy stop/start movement near colliders.
+    const targetVel = new THREE.Vector3();
     if (this.moving) {
       dir.normalize();
-      // rotate input by camera yaw so "forward" is where the camera looks
+      // Rotate input by camera yaw so "forward" is where the camera looks.
       const sin = Math.sin(cameraYaw);
       const cos = Math.cos(cameraYaw);
       const wx = dir.x * cos - dir.z * sin;
       const wz = dir.x * sin + dir.z * cos;
       const speed = this.currentSpeed(sprinting);
+      targetVel.set(wx * speed, 0, wz * speed);
+    }
 
-      const desiredX = this.position.x + wx * speed * dt;
-      const desiredZ = this.position.z + wz * speed * dt;
-      const resolved = this.world.resolveCollision(desiredX, desiredZ, this.radius);
-      this.position.x = resolved.x;
-      this.position.z = resolved.z;
+    const sharpness = this.moving ? this.accel : this.decel;
+    const alpha = 1 - Math.exp(-sharpness * dt);
+    this.velocity.lerp(targetVel, alpha);
 
-      // face movement direction (smoothly)
-      const targetHeading = Math.atan2(wx, wz);
+    const prevX = this.position.x;
+    const prevZ = this.position.z;
+
+    // Axis-separated resolution gives natural sliding along walls.
+    const stepX = this.world.resolveCollision(prevX + this.velocity.x * dt, prevZ, this.radius);
+    this.position.x = stepX.x;
+    const stepZ = this.world.resolveCollision(this.position.x, prevZ + this.velocity.z * dt, this.radius);
+    this.position.z = stepZ.z;
+
+    const movedX = this.position.x - prevX;
+    const movedZ = this.position.z - prevZ;
+    const movedLen = Math.hypot(movedX, movedZ);
+    const movingNow = movedLen > 0.0001;
+
+    if (movingNow) {
+      // Keep velocity aligned with the resolved motion to reduce wall jitter.
+      this.velocity.x = movedX / Math.max(dt, 1e-4);
+      this.velocity.z = movedZ / Math.max(dt, 1e-4);
+      const targetHeading = Math.atan2(movedX, movedZ);
       this.heading = lerpAngle(this.heading, targetHeading, 1 - Math.pow(0.001, dt));
-
-      this.walkPhase += dt * speed * 1.1;
+      this.walkPhase += dt * Math.max(1.6, movedLen / Math.max(dt, 1e-4)) * 1.1;
     } else {
       this.walkPhase += dt * 2;
     }
 
     this.model.rotation.y = this.heading;
-    const speed01 = this.moving ? (sprinting ? 1 : 0.6) : 0;
+    const speed01 = movingNow ? (sprinting ? 1 : 0.6) : 0;
     animateWalk(this.parts, this.walkPhase, speed01);
   }
 
