@@ -71,7 +71,7 @@ export const NPCS = [
   },
   {
     id: 'mehmet',
-    name: 'Mehmet · Product',
+    name: 'Stefan · Product',
     role: 'Product Manager',
     emoji: '🧑‍🏫',
     color: 0x00707f,
@@ -183,7 +183,7 @@ export const NPCS = [
   // ----- 6. OG · Facility Management -----
   {
     id: 'frank',
-    name: 'Frank · Facility',
+    name: 'Finnja · Facility',
     role: 'Facility Manager',
     emoji: '🧑‍🏭',
     color: 0x00707f,
@@ -211,7 +211,7 @@ export const NPCS = [
   // ----- 7. OG · People · Culture · Places -----
   {
     id: 'petra',
-    name: 'Petra · People & Culture',
+    name: 'Anneke · People & Culture',
     role: 'People & Culture',
     emoji: '🧑‍🤝‍🧑',
     color: 0xe36e6e,

@@ -81,7 +81,7 @@ export const QUESTS = [
   {
     id: 'q_people',
     title: 'Onboarding-Stau',
-    desc: 'Hilf Petra bei People · Culture · Places (7. OG), das Onboarding wieder flott zu machen.',
+    desc: 'Hilf Anneke bei People · Culture · Places (7. OG), das Onboarding wieder flott zu machen.',
     giver: 'petra',
     trigger: 'bug:people',
     count: 1,

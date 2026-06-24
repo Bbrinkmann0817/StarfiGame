@@ -52,6 +52,7 @@ export class QuizSystem {
     this.deckIndex = 0;
     this.active = true;
     this.locked = false;
+    this.timerPaused = false;
     this.jokerUsed = false; // one Telefonjoker per duel
 
     this.el.enemyName.textContent = cfg.enemyName;
@@ -69,6 +70,7 @@ export class QuizSystem {
   _nextQuestion() {
     if (this.enemyHP <= 0) return this._win();
     this.locked = false;
+    this.timerPaused = false;
     this.el.feedback.textContent = '';
     this.el.feedback.className = 'quiz-feedback';
 
@@ -140,7 +142,7 @@ export class QuizSystem {
       const now = performance.now();
       const dt = (now - this._lastTick) / 1000;
       this._lastTick = now;
-      if (!this.locked) {
+      if (!this.locked && !this.timerPaused) {
         this.timeLeft -= dt;
         const pct = Math.max(0, (this.timeLeft / this.timeTotal) * 100);
         this.el.timer.style.width = pct + '%';
@@ -213,6 +215,8 @@ export class QuizSystem {
   _useJoker() {
     if (!this.active || this.locked || this.jokerUsed) return;
     this.jokerUsed = true;
+    this.timerPaused = true;
+    this._lastTick = performance.now();
     if (this.el.joker) {
       this.el.joker.disabled = true;
       this.el.joker.innerHTML = '📞 Jochen (schon angerufen)';
