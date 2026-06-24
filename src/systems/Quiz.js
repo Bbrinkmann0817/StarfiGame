@@ -19,6 +19,7 @@ export class QuizSystem {
       enemyName: document.getElementById('quiz-enemy-name'),
       sprite: document.getElementById('quiz-enemy-sprite'),
       category: document.getElementById('quiz-category'),
+      coinReward: document.getElementById('quiz-coin-reward'),
       timer: document.getElementById('quiz-timer-fill'),
       question: document.getElementById('quiz-question'),
       answers: document.getElementById('quiz-answers'),
@@ -47,6 +48,8 @@ export class QuizSystem {
     this.enemyMaxHP = cfg.enemyHP;
     this.enemyHP = cfg.enemyHP;
     this.maxDiff = cfg.maxDifficulty ?? (cfg.isBoss ? 3 : 2);
+    this.coinRewardMax = Math.max(2, cfg.coinRewardMax ?? 10);
+    this.coinRewardMin = Math.max(1, cfg.coinRewardMin ?? 1);
     // Build a generous deck of fresh questions (enough even if some are missed).
     this.deck = buildDeck(cfg.topics, cfg.enemyHP + 8, this.maxDiff);
     this.deckIndex = 0;
@@ -133,6 +136,7 @@ export class QuizSystem {
     this.timeTotal = this.cfg.timePerQuestion + bonus;
     this.timeLeft = this.timeTotal;
     this._lastTick = performance.now();
+    this._updateCoinRewardLabel();
     this._runTimer();
   }
 
@@ -146,6 +150,7 @@ export class QuizSystem {
         this.timeLeft -= dt;
         const pct = Math.max(0, (this.timeLeft / this.timeTotal) * 100);
         this.el.timer.style.width = pct + '%';
+        this._updateCoinRewardLabel();
         if (this.timeLeft <= 0) {
           this._answer(-1); // timeout = wrong
           return;
@@ -184,11 +189,13 @@ export class QuizSystem {
 
     const isCorrect = index === correctIdx;
     if (isCorrect) {
+      const reward = this._currentCoinReward();
+      if (reward > 0) this.cfg.hooks.awardCoins?.(reward);
       this.enemyHP--;
       this._updateEnemyBar();
       this.el.sprite.classList.add('hit');
       setTimeout(() => this.el.sprite.classList.remove('hit'), 300);
-      this.el.feedback.textContent = pickPraise();
+      this.el.feedback.textContent = `${pickPraise()} +${reward} 🪙`;
       this.el.feedback.className = 'quiz-feedback good';
       this.audio?.playSfx('correct');
     } else {
@@ -252,6 +259,20 @@ export class QuizSystem {
   _updatePlayerBar() {
     const pct = Math.max(0, (this.cfg.hooks.getHP() / this.cfg.hooks.getMaxHP()) * 100);
     this.el.playerHP.style.width = pct + '%';
+  }
+
+  _currentCoinReward() {
+    const ratio = Math.max(0, Math.min(1, this.timeLeft / Math.max(0.001, this.timeTotal)));
+    return Math.max(
+      this.coinRewardMin,
+      Math.round(this.coinRewardMin + (this.coinRewardMax - this.coinRewardMin) * ratio)
+    );
+  }
+
+  _updateCoinRewardLabel() {
+    if (!this.el.coinReward) return;
+    const value = this._currentCoinReward();
+    this.el.coinReward.innerHTML = `Antwort-Bonus: <strong>${value} 🪙</strong> (sinkt mit Zeit)`;
   }
 
   _cleanup() {

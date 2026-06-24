@@ -26,7 +26,7 @@ export const TOPIC_LABELS = {
   security: 'IT-SECURITY'
 };
 
-export const QUESTIONS = [
+const BASE_QUESTIONS = [
   // ============================== FRONTEND (Level 1) ==============================
   { topic: 'frontend', difficulty: 1, q: 'Wofür steht <strong>HTML</strong>?', answers: ['Hypertext Markup Language', 'High Tech Modern Language', 'Home Tool Markup Language', 'Hyperlink Management Layer'], correct: 0 },
   { topic: 'frontend', difficulty: 1, q: 'Mit welchem HTML-Tag erstellt man einen Link?', answers: ['<code>&lt;a&gt;</code>', '<code>&lt;link&gt;</code>', '<code>&lt;href&gt;</code>', '<code>&lt;url&gt;</code>'], correct: 0 },
@@ -171,6 +171,61 @@ export const QUESTIONS = [
   { topic: 'security', difficulty: 3, q: 'Was verlangt die <strong>Starke Kundenauthentifizierung</strong> (SCA)?', answers: ['Mindestens zwei unabhängige Faktoren zur Freigabe', 'Nur ein langes Passwort', 'Eine Unterschrift auf Papier', 'Den Ausweis im Original'], correct: 0 }
 ];
 
+const PERSIST_KEY = 'starfigame_question_history_v1';
+
+function loadPersistentAsked() {
+  try {
+    const raw = localStorage.getItem(PERSIST_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(parsed) ? parsed : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function savePersistentAsked(set) {
+  try {
+    localStorage.setItem(PERSIST_KEY, JSON.stringify([...set]));
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function rotateAnswers(question, shift, suffix) {
+  const n = question.answers.length;
+  const answers = question.answers.map((_, i) => question.answers[(i + shift) % n]);
+  const correct = (question.correct - shift + n) % n;
+  return {
+    id: `${question.id}${suffix}`,
+    baseId: question.baseId,
+    topic: question.topic,
+    difficulty: question.difficulty,
+    q: question.q,
+    answers,
+    correct
+  };
+}
+
+/**
+ * +200% question volume: each authored question spawns 2 additional variants.
+ * Variants rotate answer slots so pattern memory is less useful.
+ */
+function expandQuestions(base) {
+  const baseWithIds = base.map((q, idx) => {
+    const baseId = `q${idx + 1}`;
+    return { ...q, id: baseId, baseId };
+  });
+  const expanded = [];
+  for (const q of baseWithIds) {
+    expanded.push(q);
+    expanded.push(rotateAnswers(q, 1, '_v2'));
+    expanded.push(rotateAnswers(q, 2, '_v3'));
+  }
+  return expanded;
+}
+
+export const QUESTIONS = expandQuestions(BASE_QUESTIONS);
+
 /** All questions of a given topic. */
 export function byTopic(topic) {
   return QUESTIONS.filter((q) => q.topic === topic);
@@ -191,16 +246,31 @@ export function shuffle(arr) {
  * `_asked` holds question objects already shown this round (object identity is
  * stable because QUESTIONS is a module-level constant).
  * ------------------------------------------------------------------ */
-const _asked = new Set();
+const _askedSession = new Set();
+const _askedPersistent = loadPersistentAsked();
+
+function qKey(q) {
+  return q?.baseId || q?.id;
+}
 
 /** Begin a new playthrough: forget which questions were already asked. */
-export function resetAsked() {
-  _asked.clear();
+export function resetAsked(options = {}) {
+  const { keepPersistent = true } = options;
+  _askedSession.clear();
+  if (!keepPersistent) {
+    _askedPersistent.clear();
+    savePersistentAsked(_askedPersistent);
+  }
 }
 
 /** Mark a question as shown so it won't be asked again this round. */
 export function markAsked(q) {
-  if (q) _asked.add(q);
+  if (!q) return;
+  const k = qKey(q);
+  if (!k) return;
+  _askedSession.add(k);
+  _askedPersistent.add(k);
+  savePersistentAsked(_askedPersistent);
 }
 
 /**
@@ -217,10 +287,25 @@ export function buildDeck(topics, count, maxDifficulty = 3) {
   const inScope = QUESTIONS.filter(
     (q) => topics.includes(q.topic) && q.difficulty <= maxDifficulty
   );
-  const fresh = shuffle(inScope.filter((q) => !_asked.has(q)));
+  const unseen = inScope.filter((q) => {
+    const k = qKey(q);
+    return !_askedSession.has(k) && !_askedPersistent.has(k);
+  });
+  const fresh = shuffle(unseen);
   const deck = fresh.slice(0, count);
+
+  // If a topic/difficulty pool is exhausted globally, allow not-yet-this-run
+  // questions so the game stays playable in very late rounds.
   if (deck.length < count) {
-    const reused = shuffle(inScope.filter((q) => _asked.has(q)));
+    const lateRoundPool = shuffle(inScope.filter((q) => !_askedSession.has(qKey(q))));
+    for (const q of lateRoundPool) {
+      if (deck.length >= count) break;
+      if (!deck.includes(q)) deck.push(q);
+    }
+  }
+
+  if (deck.length < count) {
+    const reused = shuffle(inScope.filter((q) => _askedSession.has(qKey(q))));
     for (const q of reused) {
       if (deck.length >= count) break;
       deck.push(q);

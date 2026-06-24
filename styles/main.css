@@ -541,6 +541,17 @@ kbd {
   font-weight: 700;
 }
 
+.quiz-coin-reward {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--warn);
+  margin: -2px 0 10px;
+  font-weight: 700;
+}
+.quiz-coin-reward strong {
+  color: #ffd782;
+}
+
 .quiz-timer-track {
   height: 6px;
   background: var(--panel-light);
@@ -893,6 +904,68 @@ kbd {
 }
 .elevator-floor .sub { font-weight: 400; color: var(--text-dim); font-size: 0.85rem; }
 .elevator-floor.current { opacity: 0.55; }
+
+/* Jens random popup */
+#jens-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(7, 9, 13, 0.76);
+  backdrop-filter: blur(4px);
+}
+.jens-panel {
+  width: min(560px, 92vw);
+  border-left: 4px solid var(--warn);
+}
+.jens-text {
+  margin-bottom: 14px;
+  line-height: 1.55;
+}
+.jens-text.jens-result strong {
+  color: var(--warn);
+}
+.jens-text .jens-good {
+  color: var(--good);
+  font-weight: 800;
+}
+.jens-text .jens-bad {
+  color: #ff8a8a;
+  font-weight: 800;
+}
+.jens-answers {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.jens-answer {
+  pointer-events: all;
+  text-align: left;
+  background: var(--panel-light);
+  border: 1px solid #30363d;
+  color: var(--text);
+  padding: 12px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.jens-answer:hover:not(:disabled) {
+  border-color: var(--warn);
+  background: #30363d;
+}
+.jens-answer .key {
+  font-family: var(--mono);
+  background: var(--bg);
+  border-radius: 6px;
+  padding: 2px 8px;
+  color: var(--warn);
+}
 
 /* Fade used for elevator travel */
 #travel-fade {

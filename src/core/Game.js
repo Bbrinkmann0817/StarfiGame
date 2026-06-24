@@ -18,7 +18,7 @@ import { PhoneCall } from '../ui/PhoneCall.js';
 import { Story } from '../systems/Story.js';
 import { NPCS } from '../data/npcs.js';
 import { questById } from '../data/quests.js';
-import { resetAsked } from '../data/questions.js';
+import { buildDeck, markAsked, resetAsked } from '../data/questions.js';
 import {
   OUTSIDE_SPAWN, ENTRANCE, ELEVATOR, ELEVATOR_EXIT, floorById
 } from '../data/rooms.js';
@@ -33,6 +33,7 @@ const STATE = {
   QUIZ: 'quiz',
   SHOP: 'shop',
   ELEVATOR: 'elevator',
+  JENS: 'jens',
   TRAVEL: 'travel',
   QUESTLOG: 'questlog',
   PAUSE: 'pause',
@@ -63,11 +64,18 @@ export class Game {
     this.unlockedFloors = new Set(['eg']);
     this._enteredBuilding = false;
     this.highscoreKey = 'starfigame_highscores_v1';
+    this.progressKey = 'starfigame_progress_v1';
     this.secretTextBuffer = '';
     this.secretInputHistory = [];
     this.unlockedSecrets = new Set();
     this.retroSpots = this._buildRetroSpots();
     this.secretLog = new Map();
+    this.progress = this._loadProgress();
+    this.round = this.progress.round;
+    this.jensTimer = 0;
+    this.nextJensIn = this._randJensInterval();
+    this.jensBusy = false;
+    this.dialogVariantCount = 10;
 
     this._tmpTarget = new THREE.Vector3();
   }
@@ -240,7 +248,10 @@ export class Game {
   }
 
   _beginShift() {
-    resetAsked(); // fresh question pool for this playthrough — no repeats
+    resetAsked({ keepPersistent: true });
+    this.jensTimer = 0;
+    this.nextJensIn = this._randJensInterval();
+    this.jensBusy = false;
     this.hud.show();
     this.audio.start('explore');
     this.world.setArea('outside');
@@ -252,7 +263,7 @@ export class Game {
     this._syncObjective();
     this._setState(STATE.EXPLORE);
     this.input.requestPointerLock();
-    this.hud.toast(`Willkommen, <strong>${this.playerName}</strong>! Klick ins Bild für die Maus · <kbd>E</kbd> interagieren`, '');
+    this.hud.toast(`Willkommen, <strong>${this.playerName}</strong>! Spielrunde ${this.round} · Klick ins Bild für die Maus · <kbd>E</kbd> interagieren`, '');
   }
 
   // ============================================================ state
@@ -308,6 +319,8 @@ export class Game {
       case STATE.PAUSE:
         if (this.input.wasPressed('Escape')) this._resume();
         break;
+      case STATE.JENS:
+        break;
       default:
         break;
     }
@@ -328,6 +341,7 @@ export class Game {
 
   _updateExplore(dt) {
     this._checkSecrets();
+    this._updateJens(dt);
 
     // pause
     if (this.input.wasPressed('Escape')) return this._pause();
@@ -585,6 +599,32 @@ export class Game {
     return (arr || []).map((s) => s.replace(/\{name\}/g, this.playerName));
   }
 
+  _dialogVariant(lines, key) {
+    const base = this._lines(lines);
+    if (!base.length) return base;
+    const profiles = [
+      [],
+      [[/\bGut, dass\b/g, 'Super, dass'], [/\blass uns\b/g, 'wir sollten']],
+      [[/\bGerade\b/g, 'Aktuell'], [/\blos geht’s\b/g, 'legen wir los']],
+      [[/\bkurz vorm\b/g, 'unmittelbar vor dem'], [/\bwackelt\b/g, 'ist instabil']],
+      [[/\bHilfe,\b/g, 'Bitte hilf mir,'], [/\bzusammen\b/g, 'gemeinsam']],
+      [[/\bsauber\b/g, 'stabil'], [/\bfixen\b/g, 'lösen']],
+      [[/\bBug\b/g, 'Fehler'], [/\bRelease\b/g, 'Go-Live']],
+      [[/\bwieder\b/g, 'erneut'], [/\bstabil\b/g, 'zuverlässig']],
+      [[/\bpacken wir’s an\b/g, 'gehen wir es direkt an'], [/\bheute\b/g, 'diesmal']],
+      [[/\bdu schaffst das\b/gi, 'du kriegst das hin'], [/\bsaubere\b/g, 'gute']]
+    ];
+
+    // Randomized phrasing, but no unrelated extra remarks before/after lines.
+    const idx = Math.abs(hashCode(`${key}|${this.round}|${Math.random()}`)) % this.dialogVariantCount;
+    const rules = profiles[idx] || [];
+    return base.map((line) => {
+      let out = line;
+      for (const [pattern, repl] of rules) out = out.replace(pattern, repl);
+      return out;
+    });
+  }
+
   _enterBuilding() {
     this.unlockedFloors.add('eg');
     this.unlockedFloors.add('og1');
@@ -684,13 +724,13 @@ export class Game {
 
     // Already solved → friendly closing line.
     if (status === 'done') {
-      this.dialog.start(data, this._lines(data.lines.done), () => this._setState(STATE.EXPLORE));
+      this.dialog.start(data, this._dialogVariant(data.lines.done, `${data.id}:done`), () => this._setState(STATE.EXPLORE));
       return;
     }
 
     // Briefing colleague (Jessi): explain the situation, then direct the player.
     if (!data.challenge) {
-      this.dialog.start(data, this._lines(data.lines.intro), () => {
+      this.dialog.start(data, this._dialogVariant(data.lines.intro, `${data.id}:intro`), () => {
         if (qid) this.quests.complete(qid);
         if (data.id === 'sam') {
           this.unlockedFloors.add('og2');
@@ -707,7 +747,7 @@ export class Game {
 
     // Gated challenge (boss): require the other teams to be stable first.
     if (ch.requires && !ch.requires.every((id) => this.quests.isDone(id))) {
-      this.dialog.start(data, this._lines(data.lines.locked || data.lines.intro), () =>
+      this.dialog.start(data, this._dialogVariant(data.lines.locked || data.lines.intro, `${data.id}:locked`), () =>
         this._setState(STATE.EXPLORE)
       );
       return;
@@ -715,7 +755,7 @@ export class Game {
 
     // Explain the problem, then start the quiz directly as the way to solve it.
     this.quests.offer(qid); // make sure it's active in the log
-    this.dialog.start(data, this._lines(data.lines.intro), () => this._startChallenge(npc));
+    this.dialog.start(data, this._dialogVariant(data.lines.intro, `${data.id}:intro`), () => this._startChallenge(npc));
   }
 
   // ============================================================ shop
@@ -776,19 +816,29 @@ export class Game {
     this.hud.hidePrompt();
     this.activeNpc = npc;
     const topics = ch.topics || ['frontend'];
+    const roundBoost = Math.max(0, this.round - 1);
+    const maxDifficulty = Math.min(3, (ch.maxDifficulty ?? 2) + Math.floor(roundBoost / 2));
+    const hp = (ch.hp || 3) + Math.floor(roundBoost / 2);
+    const timePerQuestion = Math.max(7, (ch.time || 12) - Math.floor(roundBoost / 3));
+    const playerDamage = (ch.damage || 16) + Math.floor(roundBoost / 4);
     this.quiz.start({
       topics,
       enemyName: ch.problem,
       emoji: ch.emoji || (ch.isBoss ? '🐉' : '🐛'),
-      enemyHP: ch.hp || 3,
+      enemyHP: hp,
       isBoss: !!ch.isBoss,
-      maxDifficulty: ch.maxDifficulty,
-      timePerQuestion: ch.time || 12,
-      playerDamage: ch.damage || 16,
+      maxDifficulty,
+      timePerQuestion,
+      playerDamage,
       hooks: {
         getHP: () => this.focus,
         getMaxHP: () => this.maxFocus,
         getTimeBonus: () => this.timeBonus,
+        awardCoins: (n) => {
+          if (!n) return;
+          this.inventory.addCoins(n);
+          this._syncHud();
+        },
         damage: (n) => this._damageFocus(n),
         onWin: () => this._onChallengeWin(npc),
         onLose: () => this._onChallengeLose(npc)
@@ -832,7 +882,7 @@ export class Game {
     this.focus = Math.min(this.maxFocus, this.focus + 20);
     this._syncHud();
     this._setState(STATE.DIALOG);
-    this.dialog.start(data, this._lines(data.lines.done), () => {
+    this.dialog.start(data, this._dialogVariant(data.lines.done, `${data.id}:done`), () => {
       this._syncObjective();
       this._setState(STATE.EXPLORE);
     });
@@ -866,13 +916,14 @@ export class Game {
     const list = this._saveHighscore(entry);
     this._renderHighscores(list, entry.id);
     this._renderSecretStats();
+    this._advanceRoundProgress();
     document.getElementById('end-title').textContent = 'RELEASE GERETTET';
     document.getElementById('end-title').setAttribute('data-text', 'RELEASE GERETTET');
     document.getElementById('end-text').innerHTML =
       `Stark gemacht, <strong>${this.playerName}</strong>! Der Master-Commit ist durch, die Pipeline leuchtet grün ` +
       `und der Ur-Bug ist Geschichte. Du hast <strong>${this.inventory.coins} Jira-Münzen</strong> gesammelt, ` +
       `<strong>${entry.score} Punkte</strong> erzielt und dich von Level 1 bis zum Boss durchgekämpft. ` +
-      `Zeit für ein wohlverdientes Feierabend-Getränk! 🍻`;
+      `Spielrunde <strong>${this.round}</strong> abgeschlossen. Nächste Runde wird härter. 🍻`;
     document.getElementById('end-screen').classList.remove('hidden');
   }
 
@@ -1006,6 +1057,165 @@ export class Game {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   }
 
+  _loadProgress() {
+    try {
+      const raw = localStorage.getItem(this.progressKey);
+      const parsed = raw ? JSON.parse(raw) : null;
+      const round = Math.max(1, Number(parsed?.round || 1));
+      return { round };
+    } catch {
+      return { round: 1 };
+    }
+  }
+
+  _saveProgress() {
+    try {
+      localStorage.setItem(this.progressKey, JSON.stringify(this.progress));
+    } catch {
+      // ignore
+    }
+  }
+
+  _advanceRoundProgress() {
+    this.progress.round = Math.max(1, this.round + 1);
+    this.round = this.progress.round;
+    this._saveProgress();
+  }
+
+  _randJensInterval() {
+    return 35 + Math.random() * 55;
+  }
+
+  _updateJens(dt) {
+    if (this.jensBusy) return;
+    this.jensTimer += dt;
+    if (this.jensTimer < this.nextJensIn) return;
+    this.jensTimer = 0;
+    this.nextJensIn = this._randJensInterval();
+    const r = Math.random();
+    if (r < 0.45) this._jensQuestionEvent();
+    else if (r < 0.8) this._jensJokeEvent();
+    else this._jensCoffeeEvent();
+  }
+
+  _openJensPopup({ title, text, answers = [], onClose }) {
+    this.jensBusy = true;
+    this._setState(STATE.JENS);
+    const overlay = document.getElementById('jens-overlay');
+    const titleEl = document.getElementById('jens-title');
+    const textEl = document.getElementById('jens-text');
+    const answersEl = document.getElementById('jens-answers');
+    const closeBtn = document.getElementById('jens-close');
+    if (!overlay || !titleEl || !textEl || !answersEl || !closeBtn) {
+      this.jensBusy = false;
+      this._setState(STATE.EXPLORE);
+      return;
+    }
+    titleEl.textContent = title;
+    textEl.innerHTML = text;
+    textEl.classList.remove('jens-result');
+    answersEl.innerHTML = '';
+    answersEl.classList.remove('hidden');
+    closeBtn.classList.add('hidden');
+
+    if (answers.length) {
+      answers.forEach((a) => {
+        const btn = document.createElement('button');
+        btn.className = 'jens-answer';
+        btn.innerHTML = a.label;
+        btn.addEventListener('click', () => {
+          answersEl.querySelectorAll('button').forEach((b) => (b.disabled = true));
+          const resultText = a.onPick?.();
+          answersEl.innerHTML = '';
+          answersEl.classList.add('hidden');
+          if (resultText) {
+            textEl.innerHTML += `<br><br><strong>${resultText}</strong>`;
+            textEl.classList.add('jens-result');
+          }
+
+          // Quiz-like flow: brief feedback, then continue automatically.
+          setTimeout(() => {
+            overlay.classList.add('hidden');
+            this.jensBusy = false;
+            this._setState(STATE.EXPLORE);
+            onClose?.();
+          }, 1250);
+        });
+        answersEl.appendChild(btn);
+      });
+    } else {
+      closeBtn.classList.remove('hidden');
+    }
+
+    closeBtn.onclick = () => {
+      overlay.classList.add('hidden');
+      this.jensBusy = false;
+      this._setState(STATE.EXPLORE);
+      onClose?.();
+    };
+
+    overlay.classList.remove('hidden');
+  }
+
+  _jensQuestionEvent() {
+    const topics = ['frontend', 'product', 'backend', 'digital', 'design', 'mobile', 'facility', 'people', 'security'];
+    const q = buildDeck(topics, 1, Math.min(3, 1 + Math.floor((this.round - 1) / 2)))[0];
+    if (!q) return;
+    markAsked(q);
+    this._openJensPopup({
+      title: '🚨 Jens im Anmarsch',
+      text: `Jens kontrolliert kurz deine Arbeit und stellt eine Zusatzfrage:<br><br><strong>${q.q}</strong>`,
+      answers: q.answers.map((ans, idx) => ({
+        label: `<span class="key">${String.fromCharCode(65 + idx)}</span><span>${ans}</span>`,
+        onPick: () => {
+          if (idx === q.correct) {
+            this.inventory.addCoins(5);
+            this._syncHud();
+            this.hud.toast('Jens nickt zufrieden. +5 Jira-Münzen.', 'coin');
+            const praise = [
+              'Jens: Sauber gelöst. Gute Antwort.',
+              'Jens: Genau so wollte ich das hören.',
+              'Jens: Stark, das passt. Weiter so.'
+            ];
+            const line = praise[Math.floor(Math.random() * praise.length)];
+            return `${line}<br>Jens schenkt dir für die korrekte Antwort <span class="jens-good">+5 Jira-Münzen</span>.`;
+          } else {
+            this._damageFocus(10);
+            this.hud.toast('Jens war nicht begeistert. -10 Fokus.', 'bad');
+            const blame = [
+              'Jens: Nicht ganz, da musst du nochmal ran.',
+              'Jens: Nope, das war daneben.',
+              'Jens: Das prüfen wir lieber nochmal gemeinsam.'
+            ];
+            const line = blame[Math.floor(Math.random() * blame.length)];
+            return `${line}<br><span class="jens-bad">-10 Fokus</span>.`;
+          }
+        }
+      }))
+    });
+  }
+
+  _jensJokeEvent() {
+    const jokes = [
+      'Jens schaut kurz rein: "Wer Kommentare schreibt, braucht weniger Meetings."',
+      'Jens murmelt: "Das ist kein Bug, das ist ein undocumented Feature."',
+      'Jens grinst: "Wenn es Freitag nicht läuft, nenn es Montagsthema."',
+      'Jens sagt: "Die beste Doku ist immer noch Code, der lesbar ist."',
+      'Jens flüstert: "Ich prüfe nur, ob ihr wirklich testet. Macht weiter."'
+    ];
+    const text = jokes[Math.floor(Math.random() * jokes.length)];
+    this._openJensPopup({ title: '👀 Jens kontrolliert', text });
+  }
+
+  _jensCoffeeEvent() {
+    this.inventory.addCoins(10);
+    this._syncHud();
+    this._openJensPopup({
+      title: '☕ Jens geht nur vorbei',
+      text: 'Jens holt sich nur schnell einen Kaffee und zieht weiter. Glück gehabt!<br><br><strong>+10 Jira-Münzen</strong>'
+    });
+  }
+
   // ============================================================ easter eggs
   _checkSecrets() {
     const letters = ['A', 'B', 'C', 'D', 'F', 'I', 'K', 'Q', 'X', 'Y', 'Z'];
@@ -1080,4 +1290,12 @@ export class Game {
 
 function clamp(v, a, b) {
   return Math.max(a, Math.min(b, v));
+}
+
+function hashCode(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = (h * 31 + str.charCodeAt(i)) | 0;
+  }
+  return h;
 }
