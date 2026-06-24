@@ -155,7 +155,7 @@ export const NPCS = [
   // ----- 5. OG · App Factory -----
   {
     id: 'tobias',
-    name: 'Tobias · App Factory',
+    name: 'Emre · App Factory',
     role: 'Mobile Developer',
     emoji: '🧑‍💻',
     color: 0xdb9b4d,

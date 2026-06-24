@@ -226,7 +226,7 @@ export class World {
         this._floorSign('INCLUSIVE DESIGN LAB · UX FÜR ALLE', 0, 14, meta.accent);
         break;
       case 'og5':
-        // App Factory (Tobias)
+        // App Factory (Emre)
         for (let i = 0; i < 2; i++) this._desk(-12 + i * 6, -10, 0);
         this._phoneMock(7, -8);
         this._phoneMock(10, -8);

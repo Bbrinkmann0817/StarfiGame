@@ -61,7 +61,7 @@ export const QUESTS = [
   {
     id: 'q_mobile',
     title: 'App-Crash',
-    desc: 'Stabilisiere mit Tobias in der App Factory (5. OG) den abstürzenden App-Build.',
+    desc: 'Stabilisiere mit Emre in der App Factory (5. OG) den abstürzenden App-Build.',
     giver: 'tobias',
     trigger: 'bug:mobile',
     count: 1,
