@@ -36,7 +36,8 @@ export const NPCS = [
         'Da bist du ja, {name}! Gott sei Dank – wir brauchen dich heute dringend. 🙏',
         'Ein Ur-Bug hat das System infiziert und legt nach und nach alle Etagen lahm.',
         'Arbeite dich von unten nach oben: Fahr mit dem Fahrstuhl ins 2. OG und hilf zuerst Melina im Frontend.',
-        'Jede Etage ist eine eigene Fachabteilung mit eigenem Code-Duell – und es wird Level für Level kniffliger. Du schaffst das, {name}!'
+        'Jede Etage ist eine eigene Fachabteilung mit eigenem Code-Duell – und es wird Level für Level kniffliger. Du schaffst das, {name}!',
+        'Und falls jemand nach Kettensägen-Benzin fragt: einfach lächeln und weiter deployen. 😄'
       ],
       done: ['Du machst das großartig, {name}. Immer weiter nach oben! ☕']
     }
@@ -64,7 +65,8 @@ export const NPCS = [
       intro: [
         'Hilfe, {name}! Wir hängen in einer unendlichen CSS-Schleife fest. 🌀',
         'Jedes Mal beim Speichern springt das Layout zurück auf <code>z-index: 9999</code>.',
-        'Du kennst dich mit HTML, CSS und JavaScript aus? Dann lass uns die Schleife jetzt zusammen aufbrechen – Frontend-Fragen, los geht’s!'
+        'Du kennst dich mit HTML, CSS und JavaScript aus? Dann lass uns die Schleife jetzt zusammen aufbrechen – Frontend-Fragen, los geht’s!',
+        'Und nein, die Torte im Pausenraum ist wahrscheinlich keine echte Quest-Belohnung.'
       ],
       done: ['Endlich! Das Layout rendert wieder sauber. Du bist ein Lebensretter, {name}. 💜']
     }
@@ -90,7 +92,8 @@ export const NPCS = [
       intro: [
         'Gut, dass du da bist, {name}! Unser Board ist im totalen Chaos. 📝',
         'Bevor ich neu priorisieren kann, müssen wir das agile Vorgehen wieder geradeziehen.',
-        'Ich stell dir ein paar Fragen rund um Scrum, Backlog & Co. Sortieren wir das Board zusammen!'
+        'Ich stell dir ein paar Fragen rund um Scrum, Backlog & Co. Sortieren wir das Board zusammen!',
+        'Und diesmal bitte kein "nur noch eine Side-Quest" mitten im Sprint. 😅'
       ],
       done: ['Das Backlog ist wieder priorisiert. Du gehörst ins Produktteam, {name}! 🟢']
     }
@@ -118,7 +121,8 @@ export const NPCS = [
       intro: [
         'Willkommen in den Digital Solutions, {name}! Hier laufen unsere digitalen Banking-Lösungen zusammen.',
         'Gerade ist eine zentrale API ausgefallen – ohne sie kommunizieren die Systeme nicht mehr. 🔌',
-        'Hilf mir mit ein paar Fragen zu APIs, Cloud und Online-Banking, dann bringen wir die Schnittstelle zurück!'
+        'Hilf mir mit ein paar Fragen zu APIs, Cloud und Online-Banking, dann bringen wir die Schnittstelle zurück!',
+        'Ein bisschen klingt das schon wie: "Would you kindly fix this endpoint?"'
       ],
       done: ['Die API antwortet wieder – sauber gemacht, {name}! Die Systeme atmen auf. 🔵']
     }
@@ -146,7 +150,8 @@ export const NPCS = [
       intro: [
         'Schön, dass du im Inclusive Design Lab vorbeischaust, {name}! 🎨',
         'Bei einem Update ist die Barrierefreiheit zerschossen – grauer Text auf hellgrauem Grund, niemand kann das lesen.',
-        'Wir müssen das Design wieder inklusiv machen. Ein paar Fragen zu UX und Accessibility – packen wir’s an!'
+        'Wir müssen das Design wieder inklusiv machen. Ein paar Fragen zu UX und Accessibility – packen wir’s an!',
+        'Ich war übrigens auch mal Abenteuer-Designerin, bis ein Bug mein Knie traf.'
       ],
       done: ['Jetzt ist es wieder für alle nutzbar. Danke, {name} – Design ist für Menschen! 💜']
     }
@@ -174,7 +179,8 @@ export const NPCS = [
       intro: [
         'Hey {name}, willkommen in der App Factory – hier bauen wir die Banking-Apps! 📱',
         'Unsere App stürzt beim Login ab und der App-Store-Release wackelt.',
-        'Hilf mir mit Fragen rund um iOS, Android und Mobile-Entwicklung, dann kriegen wir den Build stabil!'
+        'Hilf mir mit Fragen rund um iOS, Android und Mobile-Entwicklung, dann kriegen wir den Build stabil!',
+        'Heute gilt: Mobile-Wissen ist super effektiv gegen Release-Panik.'
       ],
       done: ['Build ist grün, die App läuft wieder rund. Stark, {name}! 🟡']
     }
@@ -202,7 +208,8 @@ export const NPCS = [
       intro: [
         'Moin {name}, hier im Facility Management halten wir den Laden am Laufen. 🏢',
         'Die Gebäudetechnik spielt verrückt: Alarm, Türen, Klima – alles meldet sich gleichzeitig.',
-        'Zeig mir, dass du dich mit Sicherheit, Ordnung und Nachhaltigkeit auskennst, dann bekommen wir das Haus wieder ruhig!'
+        'Zeig mir, dass du dich mit Sicherheit, Ordnung und Nachhaltigkeit auskennst, dann bekommen wir das Haus wieder ruhig!',
+        'Es ist gefährlich, ohne Kaffee allein in den Technikraum zu gehen.'
       ],
       done: ['Alles wieder unter Kontrolle. Danke, {name} – ohne Facility läuft hier nichts! 🟢']
     }
@@ -230,7 +237,8 @@ export const NPCS = [
       intro: [
         'Hallo {name}, willkommen bei People · Culture · Places! ❤️',
         'Unser Onboarding hängt fest und die neuen Azubis warten auf ihre Einarbeitung.',
-        'Du als Azubi weißt am besten, was gute Kultur und Zusammenarbeit ausmacht. Ein paar Fragen dazu – dann läuft’s wieder!'
+        'Du als Azubi weißt am besten, was gute Kultur und Zusammenarbeit ausmacht. Ein paar Fragen dazu – dann läuft’s wieder!',
+        'Respawn ist im echten Teamleben keine Option, also machen wir es gleich ordentlich.'
       ],
       done: ['Die Neuen sind an Bord und fühlen sich willkommen. Herzlich gemacht, {name}! 🧡']
     }
@@ -258,7 +266,8 @@ export const NPCS = [
       intro: [
         'Endlich Verstärkung, {name}! Im Backend brennt’s lichterloh. 🗄️',
         'Datenbank, Services, Logik – alles wackelt, kurz vorm großen Release.',
-        'Zeig mir, dass Java, SQL und OOP sitzen, dann fahren wir den Service wieder hoch!'
+        'Zeig mir, dass Java, SQL und OOP sitzen, dann fahren wir den Service wieder hoch!',
+        'Wenn du plötzlich ein lautes Ausrufezeichen hörst: besser einmal mehr auf die Logs schauen.'
       ],
       done: ['Service ist wieder stabil. Wahnsinn, {name} – nur noch der Ur-Bug! 🟡']
     }
@@ -285,7 +294,8 @@ export const NPCS = [
       intro: [
         'Da bist du also, {name}. Mutig – der Ur-Bug hat sich tief im Legacy-Code eingenistet. 🐉',
         'Das Monster mischt Fragen aus allen Abteilungen und vertauscht im Kampf sogar deine Tasten.',
-        'Bleib konzentriert, nutz notfalls die Maus – und dann pushen wir gemeinsam den finalen Master-Commit!'
+        'Bleib konzentriert, nutz notfalls die Maus – und dann pushen wir gemeinsam den finalen Master-Commit!',
+        'Denk dran: In Bossfights hilft manchmal ein geheimer Code ... oder sehr saubere Namensgebung.'
       ],
       locked: [
         'Noch nicht, {name}! Solange nicht alle Abteilungen wieder stabil laufen, frisst uns das Monster auf.',

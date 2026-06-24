@@ -202,6 +202,7 @@ export class World {
         for (let i = 0; i < 3; i++) this._desk(-12 + i * 6, -8, 0);
         this._meetingTable(-6, 9);
         this._whiteboard(-6, BUILDING.minZ + 0.4);
+        this._retroPlaque('MYTH', 15, -13, 0x8f0682);
         this._plant(-15, 13);
         this._floorSign('OPEN SPACE · FRONTEND & PRODUKT', 0, 14, meta.accent);
         break;
@@ -211,6 +212,7 @@ export class World {
         this._serverRack(8, -12);
         this._serverRack(12, -12);
         this._whiteboard(-6, BUILDING.minZ + 0.4);
+        this._retroPlaque('API', -16, 14, 0x00707f);
         this._plant(-15, 12);
         this._plant(15, 6);
         this._floorSign('DIGITAL SOLUTIONS · APIs & CLOUD', 0, 14, meta.accent);
@@ -221,6 +223,7 @@ export class World {
         this._desk(-12, -10, 0);
         this._sofa(-13, 8);
         this._coffeeTable(-13, 3);
+        this._retroPlaque('A11Y', 15, 14, 0xdb9b4d);
         this._plant(-16, -2);
         this._plant(15, 10);
         this._floorSign('INCLUSIVE DESIGN LAB · UX FÜR ALLE', 0, 14, meta.accent);
@@ -231,6 +234,7 @@ export class World {
         this._phoneMock(7, -8);
         this._phoneMock(10, -8);
         this._whiteboard(-6, BUILDING.minZ + 0.4);
+        this._retroPlaque('MOBILE', -16, -13, 0xe36e6e);
         this._plant(-15, 12);
         this._floorSign('APP FACTORY · iOS & ANDROID', 0, 14, meta.accent);
         break;
@@ -239,6 +243,7 @@ export class World {
         this._toolCabinet(-12, -11);
         this._toolCabinet(-8, -11);
         this._kitchen(8, -8);
+        this._retroPlaque('COFFEE', 16, 0, 0xdb9b4d);
         this._plant(-15, 6);
         this._plant(14, 8);
         this._floorSign('FACILITY MANAGEMENT · HAUS & TECHNIK', 0, 14, meta.accent);
@@ -248,6 +253,7 @@ export class World {
         this._sofa(-12, -10);
         this._coffeeTable(-12, -5);
         this._meetingTable(6, 8);
+        this._retroPlaque('TEAM', 0, 15, 0xe36e6e);
         this._plant(-16, 6);
         this._plant(14, -8);
         this._floorSign('PEOPLE · CULTURE · PLACES', 0, 14, meta.accent);
@@ -258,6 +264,7 @@ export class World {
         for (let i = 0; i < 4; i++) this._serverRack(2 + i * 3.4, -12);
         this._sofa(-13, 8);
         this._coffeeTable(-13, 3);
+        this._retroPlaque('ALERT', -16, 14, 0xdc1b42);
         this._plant(-16, -2);
         this._floorSign('BACKEND · SERVERRAUM', 0, 14, meta.accent);
         break;
@@ -526,6 +533,26 @@ export class World {
     t.position.set(x, 0.3, z);
     this._add(t);
     this.addCollider(x - 0.8, x + 0.8, z - 0.45, z + 0.45);
+  }
+
+  /** Small hidden plaque/terminal marker used as easter-egg world object. */
+  _retroPlaque(label, x, z, accent) {
+    const base = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.4, 0.12), toon(0x161b22));
+    base.position.set(x, 1.0, z);
+    base.castShadow = true;
+    this._add(base);
+    const glowPanel = new THREE.Mesh(new THREE.PlaneGeometry(0.86, 1.1), glow(accent));
+    glowPanel.position.set(x, 1.0, z + 0.08);
+    this._add(glowPanel);
+    const txt = makeTextSprite(label, {
+      size: 24,
+      color: '#ffffff',
+      bg: '#' + accent.toString(16).padStart(6, '0'),
+      border: '#ffffff'
+    });
+    txt.position.set(x, 1.0, z + 0.13);
+    txt.scale.set(0.6, 0.6, 0.6);
+    this._add(txt);
   }
 
   _reception(x, z) {

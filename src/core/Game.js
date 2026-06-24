@@ -63,6 +63,11 @@ export class Game {
     this.unlockedFloors = new Set(['eg']);
     this._enteredBuilding = false;
     this.highscoreKey = 'starfigame_highscores_v1';
+    this.secretTextBuffer = '';
+    this.secretInputHistory = [];
+    this.unlockedSecrets = new Set();
+    this.retroSpots = this._buildRetroSpots();
+    this.secretLog = new Map();
 
     this._tmpTarget = new THREE.Vector3();
   }
@@ -322,6 +327,8 @@ export class Game {
   }
 
   _updateExplore(dt) {
+    this._checkSecrets();
+
     // pause
     if (this.input.wasPressed('Escape')) return this._pause();
     // quest log
@@ -433,19 +440,124 @@ export class Game {
       }
     }
 
+    for (const spot of this.retroSpots) {
+      if (spot.floor !== area || this.secretLog.has(spot.id)) continue;
+      const d = Math.hypot(spot.x - p.x, spot.z - p.z);
+      if (d < spot.r && d < nearDist) {
+        near = spot;
+        nearDist = d;
+        kind = 'inspect';
+      }
+    }
+
     if (near) {
       const label = kind === 'talk' ? `Sprechen mit ${near.data.name}`
         : kind === 'elevator' ? 'Fahrstuhl rufen'
-        : 'Cafeteria-Upgrades öffnen';
+        : kind === 'shop' ? 'Cafeteria-Upgrades öffnen'
+        : near.title;
       this.hud.showPrompt(label);
       if (this.input.wasPressed('KeyE')) {
         if (kind === 'talk') this._talk(near);
         else if (kind === 'elevator') this._openElevator();
-        else this._openShop();
+        else if (kind === 'shop') this._openShop();
+        else this._inspectRetroSpot(near);
       }
     } else {
       this.hud.hidePrompt();
     }
+  }
+
+  _buildRetroSpots() {
+    return [
+      {
+        id: 'spot_og2_arcade',
+        floor: 'og2',
+        x: 15,
+        z: -13,
+        r: 1.8,
+        title: 'Retro-Poster lesen',
+        reward: 4,
+        label: 'Open Space Poster',
+        message: 'Running Gag gefunden: "Die Torte ist vielleicht doch nur ein Frontend-Mythos."'
+      },
+      {
+        id: 'spot_og3_terminal',
+        floor: 'og3',
+        x: -16,
+        z: 14,
+        r: 1.8,
+        reward: 4,
+        title: 'Terminal prüfen',
+        label: 'Digital Terminal',
+        message: 'Running Gag gefunden: "Would you kindly den Build-Status auf grün setzen?"'
+      },
+      {
+        id: 'spot_og4_note',
+        floor: 'og4',
+        x: 15,
+        z: 14,
+        r: 1.8,
+        reward: 4,
+        title: 'Sticky-Note lesen',
+        label: 'Design Lab Notiz',
+        message: 'Running Gag gefunden: "Ich war auch mal Abenteuer-Designer, bis ein Bug mein Knie traf."'
+      },
+      {
+        id: 'spot_og5_console',
+        floor: 'og5',
+        x: -16,
+        z: -13,
+        r: 1.8,
+        reward: 4,
+        title: 'Dev-Konsole lesen',
+        label: 'App Factory Konsole',
+        message: 'Running Gag gefunden: "Type mobile ist sehr effektiv gegen Legacy-Code."'
+      },
+      {
+        id: 'spot_og6_manual',
+        floor: 'og6',
+        x: 16,
+        z: 0,
+        r: 1.8,
+        reward: 4,
+        title: 'Wartungshandbuch öffnen',
+        label: 'Facility Handbuch',
+        message: 'Running Gag gefunden: "Es ist gefährlich, ohne Kaffee allein loszuziehen."'
+      },
+      {
+        id: 'spot_og7_board',
+        floor: 'og7',
+        x: 0,
+        z: 15,
+        r: 1.8,
+        reward: 4,
+        title: 'Culture-Board lesen',
+        label: 'People Board',
+        message: 'Running Gag gefunden: "YOU DIED" wurde ersetzt durch "Nimm dir Zeit zum Lernen".'
+      },
+      {
+        id: 'spot_og8_alert',
+        floor: 'og8',
+        x: -16,
+        z: 14,
+        r: 1.8,
+        reward: 6,
+        title: 'Security-Hinweis prüfen',
+        label: 'Serverraum Alert',
+        message: 'Running Gag gefunden: "!" - der Security-Moment kam wieder zu nah.'
+      }
+    ];
+  }
+
+  _inspectRetroSpot(spot) {
+    if (this.secretLog.has(spot.id)) return;
+    this.secretLog.set(spot.id, spot.label);
+    if (spot.reward > 0) {
+      this.inventory.addCoins(spot.reward);
+      this._syncHud();
+      this.audio.playSfx('coin');
+    }
+    this.hud.toast(`🕹️ ${spot.message}${spot.reward > 0 ? ` (+${spot.reward} 🪙)` : ''}`, 'coin');
   }
 
   // ============================================================ campaign
@@ -753,6 +865,7 @@ export class Game {
     const entry = this._buildScoreEntry();
     const list = this._saveHighscore(entry);
     this._renderHighscores(list, entry.id);
+    this._renderSecretStats();
     document.getElementById('end-title').textContent = 'RELEASE GERETTET';
     document.getElementById('end-title').setAttribute('data-text', 'RELEASE GERETTET');
     document.getElementById('end-text').innerHTML =
@@ -839,6 +952,31 @@ export class Game {
     });
   }
 
+  _renderSecretStats() {
+    const total = 4 + this.retroSpots.length;
+    const found = this.secretLog.size;
+    const text = document.getElementById('secret-stats');
+    if (text) text.textContent = `Easter Eggs gefunden: ${found}/${total}`;
+
+    const list = document.getElementById('secret-list');
+    if (!list) return;
+    list.innerHTML = '';
+    if (!this.secretLog.size) {
+      const li = document.createElement('li');
+      li.className = 'secret-empty';
+      li.textContent = 'Keine Geheimnisse entdeckt.';
+      list.appendChild(li);
+      return;
+    }
+
+    for (const label of this.secretLog.values()) {
+      const li = document.createElement('li');
+      li.className = 'secret-item';
+      li.textContent = '✓ ' + label;
+      list.appendChild(li);
+    }
+  }
+
   // ============================================================ helpers
   _syncHud() {
     this.hud.setHealth(this.focus, this.maxFocus);
@@ -866,6 +1004,77 @@ export class Game {
     const h = Math.floor(totalMinutes / 60);
     const m = totalMinutes % 60;
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  }
+
+  // ============================================================ easter eggs
+  _checkSecrets() {
+    const letters = ['A', 'B', 'C', 'D', 'F', 'I', 'K', 'Q', 'X', 'Y', 'Z'];
+    for (const ch of letters) {
+      if (this.input.wasPressed('Key' + ch)) {
+        this.secretTextBuffer = (this.secretTextBuffer + ch).slice(-24);
+      }
+    }
+
+    const arrows = [
+      ['ArrowUp', 'U'],
+      ['ArrowDown', 'D'],
+      ['ArrowLeft', 'L'],
+      ['ArrowRight', 'R'],
+      ['KeyB', 'B'],
+      ['KeyA', 'A']
+    ];
+    for (const [code, token] of arrows) {
+      if (this.input.wasPressed(code)) {
+        this.secretInputHistory.push(token);
+        if (this.secretInputHistory.length > 20) this.secretInputHistory.shift();
+      }
+    }
+
+    const unlock = (id, label, fn) => {
+      if (this.unlockedSecrets.has(id)) return false;
+      this.unlockedSecrets.add(id);
+      this.secretLog.set(id, label);
+      fn();
+      return true;
+    };
+
+    if (this.secretTextBuffer.endsWith('IDDQD')) {
+      unlock('iddqd', 'Code: IDDQD', () => {
+        this.focus = this.maxFocus;
+        this._syncHud();
+        this.audio.playSfx('win');
+        this.hud.toast('🕹️ Easter Egg: IDDQD erkannt · Fokus vollständig regeneriert!', 'good');
+      });
+    }
+
+    if (this.secretTextBuffer.endsWith('IDKFA')) {
+      unlock('idkfa', 'Code: IDKFA', () => {
+        this.inventory.addCoins(30);
+        this._syncHud();
+        this.audio.playSfx('coin');
+        this.hud.toast('🕹️ Easter Egg: IDKFA erkannt · +30 Jira-Münzen freigeschaltet!', 'coin');
+      });
+    }
+
+    if (this.secretTextBuffer.endsWith('XYZZY')) {
+      unlock('xyzzy', 'Code: XYZZY', () => {
+        this.inventory.addCoffee(1);
+        this.player.grantSprintBoost(18);
+        this._syncHud();
+        this.audio.playSfx('pickup');
+        this.hud.toast('🕹️ Easter Egg: XYZZY · Ein geheimer Kaffee erscheint aus dem Nichts.', 'good');
+      });
+    }
+
+    const konami = 'UUDDLRLRBA';
+    const tail = this.secretInputHistory.slice(-konami.length).join('');
+    if (tail === konami) {
+      unlock('konami', 'Code: Konami', () => {
+        this.timeBonus += 2;
+        this.audio.playSfx('select');
+        this.hud.toast('🕹️ Easter Egg: Konami-Code · +2s Zeitbonus pro Quizfrage!', 'good');
+      });
+    }
   }
 }
 
