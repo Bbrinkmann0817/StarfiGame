@@ -1,0 +1,20 @@
+{
+  "name": "operation-go-live",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Operation: Go-Live – Das Büro-Abenteuer. A 3D third-person office adventure with a quiz battle system.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "fetch-panoramas": "node tools/fetch-panoramas.mjs"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.2",
+    "vite": "^5.4.10"
+  },
+  "dependencies": {
+    "three": "^0.170.0"
+  }
+}

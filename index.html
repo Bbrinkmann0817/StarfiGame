@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>StarfiGame – Das Büro-Abenteuer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="/styles/main.css" />
+  </head>
+  <body>
+    <!-- 3D render target -->
+    <div id="app">
+      <canvas id="game-canvas"></canvas>
+    </div>
+
+    <!-- elevator/travel fade -->
+    <div id="travel-fade"></div>
+
+    <!-- ============ LOADING / TITLE SCREEN ============ -->
+    <div id="loading-screen" class="screen">
+      <div class="title-block">
+        <div class="title-glitch" data-text="STARFIGAME">STARFIGAME</div>
+        <div class="subtitle">Das FIAE-Lernabenteuer</div>
+        <p class="story">
+          Trainiere dein Wissen als angehende:r <strong>Fachinformatiker:in</strong> – in einem
+          3D-Tag bei der Star Finanz. Löse die Probleme der Teams in Code-Duellen, Etage für
+          Etage, von Level zu Level immer kniffliger. Schaffst du es bis zum Ur-Bug?
+        </p>
+        <div id="loading-progress">
+          <div id="loading-bar"></div>
+        </div>
+        <button id="start-button" class="btn-primary" disabled>Wird geladen…</button>
+        <div class="controls-hint">
+          <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Bewegen</span>
+          <span><kbd>Maus</kbd> Umsehen</span>
+          <span><kbd>Shift</kbd> Sprint</span>
+          <span><kbd>E</kbd> Interagieren</span>
+          <span><kbd>Tab</kbd> Quest-Log</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ NAME ENTRY ============ -->
+    <div id="name-screen" class="screen hidden">
+      <div class="title-block">
+        <div class="subtitle">Anmeldung</div>
+        <h2 class="name-title">Wie heißt du, Azubi?</h2>
+        <p class="story">Dein Name erscheint im Spiel – deine Kolleg:innen sprechen dich direkt an.</p>
+        <input id="name-input" type="text" maxlength="20" autocomplete="off"
+               placeholder="Dein Name" />
+        <button id="name-submit" class="btn-primary">Schicht antreten</button>
+      </div>
+    </div>
+
+    <!-- ============ PHONE CALL INTRO ============ -->
+    <div id="phone-overlay" class="screen hidden">
+      <div class="phone">
+        <div class="phone-ring" id="phone-ring">📞</div>
+        <div class="phone-caller" id="phone-caller">Eingehender Anruf …</div>
+        <div class="phone-text" id="phone-text"></div>
+        <button id="phone-answer" class="btn-primary">Annehmen</button>
+        <button id="phone-continue" class="btn-secondary hidden">Weiter ▸</button>
+      </div>
+    </div>
+
+    <!-- ============ IN-GAME HUD ============ -->
+    <div id="hud" class="hidden">
+      <div class="hud-top-left">
+        <div class="stat-bar">
+          <span class="stat-label">⚡ Fokus</span>
+          <div class="bar-track"><div id="health-fill" class="bar-fill"></div></div>
+        </div>
+        <div class="stat-line">
+          <span class="coin">🪙</span><span id="coin-count">0</span> Jira-Münzen
+          <span class="coffee">☕</span><span id="coffee-count">0</span>
+        </div>
+      </div>
+
+      <div class="hud-top-right">
+        <div id="clock">15:00</div>
+        <div id="floor-indicator">📍 Draußen</div>
+        <div id="objective-tracker">
+          <div class="objective-title">AKTUELLES ZIEL</div>
+          <div id="objective-text">Finde heraus, was im Büro vor sich geht.</div>
+        </div>
+      </div>
+
+      <div id="interaction-prompt" class="hidden">
+        <kbd>E</kbd> <span id="interaction-text">Sprechen</span>
+      </div>
+
+      <div id="toast-container"></div>
+
+      <div id="crosshair"></div>
+    </div>
+
+    <!-- ============ DIALOG BOX ============ -->
+    <div id="dialog-box" class="hidden">
+      <div class="dialog-portrait" id="dialog-portrait">🧑‍💻</div>
+      <div class="dialog-content">
+        <div class="dialog-name" id="dialog-name">Kollege</div>
+        <div class="dialog-text" id="dialog-text"></div>
+        <div class="dialog-options" id="dialog-options"></div>
+        <div class="dialog-continue">▸ <kbd>Leertaste</kbd> / Klick</div>
+      </div>
+    </div>
+
+    <!-- ============ QUIZ BATTLE OVERLAY ============ -->
+    <div id="quiz-overlay" class="hidden">
+      <div class="quiz-scanlines"></div>
+      <div class="quiz-frame">
+        <div class="quiz-combat-header">
+          <div class="combatant player-side">
+            <div class="combatant-name">DU</div>
+            <div class="hp-bar"><div id="quiz-player-hp" class="hp-fill"></div></div>
+          </div>
+          <div class="quiz-vs">VS</div>
+          <div class="combatant enemy-side">
+            <div class="combatant-name" id="quiz-enemy-name">Glitch-Anomalie</div>
+            <div class="hp-bar enemy"><div id="quiz-enemy-hp" class="hp-fill"></div></div>
+          </div>
+        </div>
+
+        <div class="quiz-enemy-stage">
+          <div id="quiz-enemy-sprite" class="quiz-enemy-sprite">🐛</div>
+        </div>
+
+        <div class="quiz-category" id="quiz-category">TECH-STACK</div>
+
+        <div class="quiz-timer-track"><div id="quiz-timer-fill"></div></div>
+
+        <div class="quiz-question" id="quiz-question">Frage…</div>
+        <div class="quiz-answers" id="quiz-answers"></div>
+
+        <div class="quiz-hint hidden" id="quiz-hint"></div>
+
+        <div class="quiz-tools">
+          <button id="quiz-joker" class="quiz-joker">📞 Jochen anrufen <span class="joker-tag">Telefonjoker</span></button>
+        </div>
+
+        <div class="quiz-feedback" id="quiz-feedback"></div>
+      </div>
+    </div>
+
+    <!-- ============ QUEST LOG ============ -->
+    <div id="quest-log" class="hidden">
+      <div class="panel">
+        <h2>📋 Quest-Log</h2>
+        <ul id="quest-list"></ul>
+        <div class="panel-footer"><kbd>Tab</kbd> schließen</div>
+      </div>
+    </div>
+
+    <!-- ============ SHOP (Cafeteria) ============ -->
+    <div id="shop-overlay" class="hidden">
+      <div class="panel">
+        <h2>🛒 Cafeteria-Upgrades</h2>
+        <div class="shop-balance">Guthaben: <span id="shop-balance">0</span> 🪙</div>
+        <div id="shop-items"></div>
+        <button id="shop-close" class="btn-secondary">Schließen</button>
+      </div>
+    </div>
+
+    <!-- ============ ELEVATOR (floor select) ============ -->
+    <div id="elevator-overlay" class="hidden">
+      <div class="panel elevator-panel">
+        <h2>🛗 Fahrstuhl</h2>
+        <div class="elevator-sub">Wohin möchtest du?</div>
+        <div id="elevator-floors"></div>
+        <button id="elevator-close" class="btn-secondary">Abbrechen</button>
+      </div>
+    </div>
+
+    <!-- ============ END / RESULT SCREEN ============ -->
+    <div id="end-screen" class="screen hidden">
+      <div class="title-block">
+        <div id="end-title" class="title-glitch" data-text="RELEASE GERETTET">RELEASE GERETTET</div>
+        <p id="end-text" class="story"></p>
+        <button id="end-restart" class="btn-primary">Neue Schicht starten</button>
+      </div>
+    </div>
+
+    <!-- ============ PAUSE ============ -->
+    <div id="pause-screen" class="screen hidden">
+      <div class="title-block">
+        <div class="subtitle">PAUSE</div>
+        <button id="resume-button" class="btn-primary">Weiter</button>
+        <div class="controls-hint">
+          <span><kbd>Esc</kbd> Pause</span>
+          <span><kbd>M</kbd> Musik an/aus</span>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
