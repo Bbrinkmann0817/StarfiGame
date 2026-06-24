@@ -332,7 +332,7 @@ export class Game {
     // mouse-look
     if (this.input.pointerLocked) {
       const { dx, dy } = this.input.consumeMouse();
-      this.camYaw -= dx * this.sensitivity;
+      this.camYaw += dx * this.sensitivity;
       this.camPitch = clamp(this.camPitch - dy * this.sensitivity, 0.05, 1.15);
     }
 
