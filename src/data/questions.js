@@ -199,7 +199,17 @@ function savePersistentAsked(set) {
   }
 }
 
-function rotateAnswers(question, shift, suffix) {
+function variantPrompt(q, variantIndex) {
+  if (variantIndex === 0) return q;
+  const lead = [
+    'Welche Antwort ist korrekt?',
+    'Welche Aussage trifft zu?',
+    'Wähle die richtige Option.'
+  ];
+  return `${lead[(variantIndex - 1) % lead.length]} ${q}`;
+}
+
+function rotateAnswers(question, shift, suffix, variantIndex = 0) {
   const n = question.answers.length;
   const answers = question.answers.map((_, i) => question.answers[(i + shift) % n]);
   const correct = (question.correct - shift + n) % n;
@@ -208,26 +218,27 @@ function rotateAnswers(question, shift, suffix) {
     baseId: question.baseId,
     topic: question.topic,
     difficulty: question.difficulty,
-    q: question.q,
+    q: variantPrompt(question.q, variantIndex),
     answers,
     correct
   };
 }
 
 /**
- * +200% question volume: each authored question spawns 2 additional variants.
- * Variants rotate answer slots so pattern memory is less useful.
+ * Generates additional wording/answer variants from each authored question.
+ * Variants rotate answer slots and lightly vary wording to increase randomness.
  */
 function expandQuestions(base) {
   const baseWithIds = base.map((q, idx) => {
     const baseId = `q${idx + 1}`;
-    return { ...q, id: baseId, baseId };
+    return { ...q, id: baseId, baseId, q: variantPrompt(q.q, 0) };
   });
   const expanded = [];
   for (const q of baseWithIds) {
     expanded.push(q);
-    expanded.push(rotateAnswers(q, 1, '_v2'));
-    expanded.push(rotateAnswers(q, 2, '_v3'));
+    expanded.push(rotateAnswers(q, 1, '_v2', 1));
+    expanded.push(rotateAnswers(q, 2, '_v3', 2));
+    expanded.push(rotateAnswers(q, 3, '_v4', 3));
   }
   return expanded;
 }
@@ -295,28 +306,49 @@ export function buildDeck(topics, count, maxDifficulty = 3) {
   const inScope = QUESTIONS.filter(
     (q) => topics.includes(q.topic) && q.difficulty <= maxDifficulty
   );
-  const unseen = inScope.filter((q) => {
+  const byBase = new Map();
+  for (const q of inScope) {
     const k = qKey(q);
-    return !_askedSession.has(k) && !_askedPersistent.has(k);
-  });
-  const fresh = shuffle(unseen);
-  const deck = fresh.slice(0, count);
+    if (!k) continue;
+    if (!byBase.has(k)) byBase.set(k, []);
+    byBase.get(k).push(q);
+  }
+
+  const pickVariant = (k) => {
+    const variants = byBase.get(k) || [];
+    if (!variants.length) return null;
+    return variants[Math.floor(Math.random() * variants.length)];
+  };
+
+  const allBases = [...byBase.keys()];
+  const unseenBases = shuffle(allBases.filter((k) => !_askedSession.has(k) && !_askedPersistent.has(k)));
+  const deck = [];
+
+  for (const k of unseenBases) {
+    if (deck.length >= count) break;
+    const q = pickVariant(k);
+    if (q) deck.push(q);
+  }
 
   // If a topic/difficulty pool is exhausted globally, allow not-yet-this-run
   // questions so the game stays playable in very late rounds.
   if (deck.length < count) {
-    const lateRoundPool = shuffle(inScope.filter((q) => !_askedSession.has(qKey(q))));
-    for (const q of lateRoundPool) {
+    const lateRoundBases = shuffle(allBases.filter((k) => !_askedSession.has(k)));
+    for (const k of lateRoundBases) {
       if (deck.length >= count) break;
-      if (!deck.includes(q)) deck.push(q);
+      if (deck.some((q) => qKey(q) === k)) continue;
+      const q = pickVariant(k);
+      if (q) deck.push(q);
     }
   }
 
   if (deck.length < count) {
-    const reused = shuffle(inScope.filter((q) => _askedSession.has(qKey(q))));
-    for (const q of reused) {
+    const reusedBases = shuffle(allBases.filter((k) => _askedSession.has(k)));
+    for (const k of reusedBases) {
       if (deck.length >= count) break;
-      deck.push(q);
+      if (deck.some((q) => qKey(q) === k)) continue;
+      const q = pickVariant(k);
+      if (q) deck.push(q);
     }
   }
   return deck;

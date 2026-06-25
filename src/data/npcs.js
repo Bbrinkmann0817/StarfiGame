@@ -187,7 +187,7 @@ export const NPCS = [
   },
   {
     id: 'britta',
-    name: 'Britta & Jennifer · StarMoney',
+    name: 'Britta · StarMoney',
     role: 'Product Specialist & Business Analyst',
     emoji: '👩‍💼👩‍💻',
     color: 0xe36e6e,
@@ -210,6 +210,24 @@ export const NPCS = [
         'Wenn das sitzt, sind wir durch und die Präsentation kann raus.'
       ],
       done: ['Top! Ohne dich hätten wir das nicht geschafft, wir sind beide durch und die Präsentation steht. Vielen Dank, {name}! ✨']
+    }
+  },
+  {
+    id: 'jennifer',
+    name: 'Jennifer · StarMoney',
+    role: 'Business Analyst',
+    emoji: '👩‍💻',
+    color: 0xdb9b4d,
+    floor: 'og5',
+    pos: [6.1, -6.1],
+    heading: 0,
+    photo: null,
+    lines: {
+      intro: [
+        'Hi {name}, ich bin Jennifer. Ich stehe Britta beim StarMoney-Faktencheck zur Seite. 👍',
+        'Britta führt dich durch das Duell, ich halte die Zahlen und Notizen bereit.'
+      ],
+      done: ['Mega, {name}! Mit dir steht unsere StarMoney-Präsentation wieder bombenfest.']
     }
   },
 
