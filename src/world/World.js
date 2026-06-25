@@ -43,6 +43,7 @@ export class World {
     // build-time pointers (set by _buildArea while an area is constructed)
     this._g = null;
     this._cur = null;
+    this.floorMat = null;
   }
 
   build() {
@@ -229,7 +230,7 @@ export class World {
         this._floorSign('INCLUSIVE DESIGN LAB · UX FÜR ALLE', 0, 14, meta.accent);
         break;
       case 'og5':
-        // App Factory (Emre)
+        // App Factory (Britta + Jennifer)
         for (let i = 0; i < 2; i++) this._desk(-12 + i * 6, -10, 0);
         this._phoneMock(7, -8);
         this._phoneMock(10, -8);
@@ -253,6 +254,7 @@ export class World {
         this._sofa(-12, -10);
         this._coffeeTable(-12, -5);
         this._meetingTable(6, 8);
+        this._pingPongTable(11, -8);
         this._retroPlaque('TEAM', 0, 15, 0xe36e6e);
         this._plant(-16, 6);
         this._plant(14, -8);
@@ -277,9 +279,23 @@ export class World {
     const w = maxX - minX;
     const d = maxZ - minZ;
 
+    if (!this.floorMat) {
+      const tex = this.assets.getTexture('floor_bodenbelag');
+      if (tex) {
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(6, 6);
+      }
+      this.floorMat = new THREE.MeshStandardMaterial({
+        color: BRAND.floor,
+        roughness: 0.9,
+        map: tex || null
+      });
+    }
+
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(w, d),
-      new THREE.MeshStandardMaterial({ color: BRAND.floor, roughness: 0.85 })
+      this.floorMat
     );
     floor.rotation.x = -Math.PI / 2;
     floor.position.set((minX + maxX) / 2, 0, (minZ + maxZ) / 2);
@@ -533,6 +549,56 @@ export class World {
     t.position.set(x, 0.3, z);
     this._add(t);
     this.addCollider(x - 0.8, x + 0.8, z - 0.45, z + 0.45);
+  }
+
+  /** Playable area prop for the ping-pong minigame interaction. */
+  _pingPongTable(x, z) {
+    const g = new THREE.Group();
+    const top = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.12, 2.4), toon(0x0f5c4d));
+    top.position.y = 0.95;
+    top.castShadow = true;
+    g.add(top);
+
+    const lineMat = glow(0xeef1f6);
+    const centerLine = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.02, 2.28), lineMat);
+    centerLine.position.set(0, 1.02, 0);
+    g.add(centerLine);
+    const edgeX1 = new THREE.Mesh(new THREE.BoxGeometry(4.26, 0.02, 0.04), lineMat);
+    edgeX1.position.set(0, 1.02, 1.12);
+    g.add(edgeX1);
+    const edgeX2 = edgeX1.clone();
+    edgeX2.position.z = -1.12;
+    g.add(edgeX2);
+
+    const net = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.22, 2.3), toon(0xeef1f6));
+    net.position.set(0, 1.09, 0);
+    g.add(net);
+
+    for (const dx of [-1.8, 1.8]) {
+      for (const dz of [-0.9, 0.9]) {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.95, 0.12), toon(BRAND.gray));
+        leg.position.set(dx, 0.47, dz);
+        g.add(leg);
+      }
+    }
+
+    const paddleA = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.05, 20), toon(BRAND.red));
+    paddleA.rotation.x = Math.PI / 2;
+    paddleA.position.set(-0.7, 1.04, 0.6);
+    g.add(paddleA);
+
+    const paddleB = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.05, 20), toon(BRAND.teal));
+    paddleB.rotation.x = Math.PI / 2;
+    paddleB.position.set(0.7, 1.04, -0.6);
+    g.add(paddleB);
+
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), toon(0xffffff));
+    ball.position.set(0.15, 1.08, 0.1);
+    g.add(ball);
+
+    g.position.set(x, 0, z);
+    this._add(g);
+    this.addCollider(x - 2.3, x + 2.3, z - 1.3, z + 1.3);
   }
 
   /** Small hidden plaque/terminal marker used as easter-egg world object. */

@@ -182,6 +182,48 @@
       </div>
     </div>
 
+    <!-- ============ PING-PONG MINIGAME ============ -->
+    <div id="pingpong-overlay" class="hidden">
+      <div class="panel pingpong-panel">
+        <h2>🏓 Tischtennis-Match</h2>
+        <div id="pingpong-score" class="pingpong-score">0 : 0</div>
+        <div id="pingpong-status" class="pingpong-status">Spiele bis 7 Punkte.</div>
+        <canvas id="pingpong-canvas" width="880" height="500"></canvas>
+        <div class="pingpong-controls">
+          <span><kbd>W</kbd><kbd>S</kbd> oder <kbd>↑</kbd><kbd>↓</kbd> bewegen</span>
+          <span><kbd>Esc</kbd> schließen</span>
+        </div>
+        <div class="pingpong-actions">
+          <button id="pingpong-restart" class="btn-secondary">Neu starten</button>
+          <button id="pingpong-close" class="btn-primary">Zurück ins Büro</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SIMON SAYS MINIGAME ============ -->
+    <div id="simon-overlay" class="hidden">
+      <div class="panel simon-panel">
+        <h2>🎨 Simon Says</h2>
+        <div id="simon-round" class="simon-round">Runde 0 / 8</div>
+        <div id="simon-status" class="simon-status">Merke dir die Farbfolge und tippe sie nach.</div>
+        <div id="simon-board" class="simon-board" role="group" aria-label="Simon Farben">
+          <button class="simon-pad simon-red" data-simon="0" aria-label="Rot"></button>
+          <button class="simon-pad simon-blue" data-simon="1" aria-label="Blau"></button>
+          <button class="simon-pad simon-green" data-simon="2" aria-label="Grün"></button>
+          <button class="simon-pad simon-yellow" data-simon="3" aria-label="Gelb"></button>
+        </div>
+        <div class="simon-controls">
+          <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> oder Klick</span>
+          <span><kbd>Esc</kbd> schließen</span>
+        </div>
+        <div class="simon-actions">
+          <button id="simon-start" class="btn-primary">Start</button>
+          <button id="simon-restart" class="btn-secondary">Neu starten</button>
+          <button id="simon-close" class="btn-secondary">Zurück ins Büro</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ============ END / RESULT SCREEN ============ -->
     <div id="end-screen" class="screen hidden">
       <div class="title-block">

@@ -35,11 +35,11 @@ export const NPCS = [
       intro: [
         'Da bist du ja, {name}! Gott sei Dank – wir brauchen dich heute dringend. 🙏',
         'Ein Ur-Bug hat das System infiziert und legt nach und nach alle Etagen lahm.',
-        'Arbeite dich von unten nach oben: Fahr mit dem Fahrstuhl ins 2. OG und hilf zuerst Melina im Frontend.',
+        'Bevor ich dich hoch zu Melina schicke, musst du mir erst zeigen, dass du fokussiert bist: eine Runde Simon Says.',
         'Jede Etage ist eine eigene Fachabteilung mit eigenem Code-Duell – und es wird Level für Level kniffliger. Du schaffst das, {name}!',
         'Und falls jemand nach Kettensägen-Benzin fragt: einfach lächeln und weiter deployen. 😄'
       ],
-      done: ['Du machst das großartig, {name}. Immer weiter nach oben! ☕']
+      done: ['Stark, {name}! Simon Says bestanden. Fahr jetzt mit dem Fahrstuhl ins 2. OG und hilf Melina im Frontend. ☕']
     }
   },
 
@@ -159,13 +159,13 @@ export const NPCS = [
 
   // ----- 5. OG · App Factory -----
   {
-    id: 'tobias',
+    id: 'emre',
     name: 'Emre · App Factory',
     role: 'Mobile Developer',
     emoji: '🧑‍💻',
     color: 0xdb9b4d,
     floor: 'og5',
-    pos: [-4, -6],
+    pos: [-9, -4],
     heading: 0,
     quest: 'q_mobile',
     photo: null,
@@ -180,9 +180,36 @@ export const NPCS = [
         'Hey {name}, willkommen in der App Factory – hier bauen wir die Banking-Apps! 📱',
         'Unsere App stürzt beim Login ab und der App-Store-Release wackelt.',
         'Hilf mir mit Fragen rund um iOS, Android und Mobile-Entwicklung, dann kriegen wir den Build stabil!',
-        'Heute gilt: Mobile-Wissen ist super effektiv gegen Release-Panik.'
+        'Danach warten Britta und Jennifer mit dem StarMoney-Teil auf dich.'
       ],
-      done: ['Build ist grün, die App läuft wieder rund. Stark, {name}! 🟡']
+      done: ['Build ist grün, die App läuft wieder rund. Stark, {name}! Sprich jetzt Britta und Jennifer gemeinsam für den StarMoney-Teil an. 🟡']
+    }
+  },
+  {
+    id: 'britta',
+    name: 'Britta & Jennifer · StarMoney',
+    role: 'Product Specialist & Business Analyst',
+    emoji: '👩‍💼👩‍💻',
+    color: 0xe36e6e,
+    floor: 'og5',
+    pos: [3.0, -6.3],
+    heading: 0,
+    quest: 'q_starmoney',
+    photo: null,
+    challenge: {
+      problem: 'StarMoney-Faktencheck',
+      emoji: '📊',
+      topics: ['starmoney'],
+      hp: 4, time: 13, damage: 15, level: 5, maxDifficulty: 2
+    },
+    lines: {
+      intro: [
+        'Hey {name}, perfekt dass du da bist! Wir bereiten gerade zusammen eine Präsentation über StarMoney vor. 📊',
+        'Bei einigen Antworten zu den Kennzahlen sind wir uns unsicher und wollen auf keinen Fall etwas Falsches präsentieren.',
+        'Kannst du uns helfen und die richtigen Antworten mit uns durchgehen?',
+        'Wenn das sitzt, sind wir durch und die Präsentation kann raus.'
+      ],
+      done: ['Top! Ohne dich hätten wir das nicht geschafft, wir sind beide durch und die Präsentation steht. Vielen Dank, {name}! ✨']
     }
   },
 
@@ -286,9 +313,9 @@ export const NPCS = [
     challenge: {
       problem: 'Legacy-Code-Monster',
       emoji: '🐉',
-      topics: ['security', 'backend', 'digital', 'frontend', 'mobile'],
+      topics: ['security', 'backend', 'digital', 'frontend', 'mobile', 'starmoney'],
       hp: 6, time: 10, damage: 12, level: 9, maxDifficulty: 3, isBoss: true,
-      requires: ['q_css', 'q_meeting', 'q_digital', 'q_design', 'q_mobile', 'q_facility', 'q_people', 'q_coffee']
+      requires: ['q_css', 'q_meeting', 'q_digital', 'q_design', 'q_mobile', 'q_starmoney', 'q_facility', 'q_people', 'q_coffee']
     },
     lines: {
       intro: [

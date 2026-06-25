@@ -32,6 +32,9 @@ export const OUTSIDE_SPAWN = { x: 0, z: 26, heading: 0 };
 /** Door trigger just inside the facade — walking here enters the building. */
 export const ENTRANCE = { x: 0, z: 3, r: 2.6 };
 
+/** First indoor spawn after entering the building from outside (opposite elevator). */
+export const BUILDING_ENTRY_SPAWN = { x: -13, z: 6, heading: 0 };
+
 /** Elevator interaction point (same spot on every indoor floor). */
 export const ELEVATOR = { x: 13, z: 11, r: 3 };
 

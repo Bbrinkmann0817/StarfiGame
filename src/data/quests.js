@@ -62,8 +62,18 @@ export const QUESTS = [
     id: 'q_mobile',
     title: 'App-Crash',
     desc: 'Stabilisiere mit Emre in der App Factory (5. OG) den abstürzenden App-Build.',
-    giver: 'tobias',
+    giver: 'emre',
     trigger: 'bug:mobile',
+    count: 1,
+    reward: 40,
+    startActive: false
+  },
+  {
+    id: 'q_starmoney',
+    title: 'StarMoney-Faktencheck',
+    desc: 'Hilf Britta und Jennifer im 5. OG dabei, die zentralen StarMoney-Kennzahlen für ihre Präsentation zu prüfen.',
+    giver: 'britta',
+    trigger: 'bug:starmoney',
     count: 1,
     reward: 40,
     startActive: false

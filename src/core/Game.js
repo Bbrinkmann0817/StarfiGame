@@ -15,12 +15,14 @@ import { Shop } from '../ui/Shop.js';
 import { QuestLog } from '../ui/QuestLog.js';
 import { Elevator } from '../ui/Elevator.js';
 import { PhoneCall } from '../ui/PhoneCall.js';
+import { PingPong } from '../ui/PingPong.js';
+import { SimonSays } from '../ui/SimonSays.js';
 import { Story } from '../systems/Story.js';
 import { NPCS } from '../data/npcs.js';
 import { questById } from '../data/quests.js';
 import { buildDeck, markAsked, resetAsked } from '../data/questions.js';
 import {
-  OUTSIDE_SPAWN, ENTRANCE, ELEVATOR, ELEVATOR_EXIT, floorById
+  OUTSIDE_SPAWN, ENTRANCE, BUILDING_ENTRY_SPAWN, ELEVATOR, ELEVATOR_EXIT, floorById
 } from '../data/rooms.js';
 
 const STATE = {
@@ -33,6 +35,7 @@ const STATE = {
   QUIZ: 'quiz',
   SHOP: 'shop',
   ELEVATOR: 'elevator',
+  MINIGAME: 'minigame',
   JENS: 'jens',
   TRAVEL: 'travel',
   QUESTLOG: 'questlog',
@@ -76,6 +79,7 @@ export class Game {
     this.nextJensIn = this._randJensInterval();
     this.jensBusy = false;
     this.dialogVariantCount = 10;
+    this.simonRewardClaimed = false;
 
     this._tmpTarget = new THREE.Vector3();
   }
@@ -89,6 +93,7 @@ export class Game {
 
     // Optional branded assets — safe if the files don't exist yet.
     this.assets.queueTexture('logo', '/assets/images/logo.png');
+    this.assets.queueTexture('floor_bodenbelag', '/assets/images/Bodenbelag.png');
 
     this.world = new World(this.scene, this.assets);
 
@@ -155,6 +160,7 @@ export class Game {
 
     // Cafeteria upgrade terminal (Star Café on the 6th floor).
     this.shopPoint = { x: 4.8, z: -8, r: 2.8, floor: 'og6' };
+    this.pingPongPoint = { x: 11, z: -8, r: 2.8, floor: 'og7' };
 
     this._applyFloorVisibility('outside');
   }
@@ -169,6 +175,8 @@ export class Game {
     this.quiz = new QuizSystem(this.audio);
     this.elevator = new Elevator(this.audio);
     this.phone = new PhoneCall(this.audio);
+    this.pingPong = new PingPong(this.audio);
+    this.simonSays = new SimonSays(this.audio);
 
     this.inventory.onChange = () => this._syncHud();
     this.quests.onChange = () => {
@@ -252,6 +260,7 @@ export class Game {
     this.jensTimer = 0;
     this.nextJensIn = this._randJensInterval();
     this.jensBusy = false;
+    this.simonRewardClaimed = false;
     this.hud.show();
     this.audio.start('explore');
     this.world.setArea('outside');
@@ -315,6 +324,12 @@ export class Game {
         break;
       case STATE.ELEVATOR:
         if (this.input.wasPressed('Escape')) this.elevator.close();
+        break;
+      case STATE.MINIGAME:
+        if (this.input.wasPressed('Escape')) {
+          this.pingPong.close();
+          this.simonSays.close();
+        }
         break;
       case STATE.PAUSE:
         if (this.input.wasPressed('Escape')) this._resume();
@@ -454,6 +469,15 @@ export class Game {
       }
     }
 
+    if (this.pingPongPoint.floor === area) {
+      const pd = Math.hypot(this.pingPongPoint.x - p.x, this.pingPongPoint.z - p.z);
+      if (pd < this.pingPongPoint.r && pd < nearDist) {
+        near = this.pingPongPoint;
+        nearDist = pd;
+        kind = 'pingpong';
+      }
+    }
+
     for (const spot of this.retroSpots) {
       if (spot.floor !== area || this.secretLog.has(spot.id)) continue;
       const d = Math.hypot(spot.x - p.x, spot.z - p.z);
@@ -468,12 +492,14 @@ export class Game {
       const label = kind === 'talk' ? `Sprechen mit ${near.data.name}`
         : kind === 'elevator' ? 'Fahrstuhl rufen'
         : kind === 'shop' ? 'Cafeteria-Upgrades öffnen'
+        : kind === 'pingpong' ? 'Tischtennis spielen'
         : near.title;
       this.hud.showPrompt(label);
       if (this.input.wasPressed('KeyE')) {
         if (kind === 'talk') this._talk(near);
         else if (kind === 'elevator') this._openElevator();
         else if (kind === 'shop') this._openShop();
+        else if (kind === 'pingpong') this._openPingPong();
         else this._inspectRetroSpot(near);
       }
     } else {
@@ -631,7 +657,7 @@ export class Game {
     this.story.advanceTo('lift1');
     this._travelTo('eg', () => {
       this.hud.toast('Du bist im Foyer. Nimm den Fahrstuhl (E) ins 1. OG.', '');
-    });
+    }, BUILDING_ENTRY_SPAWN);
   }
 
   _openElevator() {
@@ -641,7 +667,7 @@ export class Game {
   }
 
   /** Fade out, switch floor, drop the player at the elevator, fade back in. */
-  _travelTo(area, after) {
+  _travelTo(area, after, spawnOverride = null) {
     this._setState(STATE.TRAVEL);
     this.input.exitPointerLock();
     const fade = document.getElementById('travel-fade');
@@ -649,10 +675,11 @@ export class Game {
     this.audio.playSfx('select');
     setTimeout(() => {
       this.world.setArea(area);
-      const spawn = this._pickTravelSpawn();
+      const spawn = spawnOverride || this._pickTravelSpawn();
       this.player.setPosition(spawn.x, spawn.z);
-      this.player.heading = ELEVATOR_EXIT.heading;
-      this.camYaw = ELEVATOR_EXIT.heading;
+      const heading = spawn.heading ?? ELEVATOR_EXIT.heading;
+      this.player.heading = heading;
+      this.camYaw = heading;
       this._applyFloorVisibility(area);
       this._setFloorIndicator(area);
       this._onArrive(area);
@@ -705,7 +732,7 @@ export class Game {
       og2: ['lift2', 'melina'],
       og3: ['lift3', 'sven'],
       og4: ['lift4', 'aylin'],
-      og5: ['lift5', 'tobias'],
+      og5: ['lift5', 'emre'],
       og6: ['lift6', 'frank'],
       og7: ['lift7', 'petra'],
       og8: ['lift8', 'viktor']
@@ -728,15 +755,36 @@ export class Game {
       return;
     }
 
-    // Briefing colleague (Jessi): explain the situation, then direct the player.
+    if (data.id === 'sam' && status !== 'done') {
+      this.quests.offer(qid);
+      this.dialog.start(data, this._dialogVariant(data.lines.intro, `${data.id}:intro`), () => {
+        this._openSimonSays({
+          reward: true,
+          onWin: () => {
+            if (qid) this.quests.complete(qid);
+            this.unlockedFloors.add('og2');
+            this.story.advanceTo('lift2');
+            this._setState(STATE.DIALOG);
+            this.dialog.start(data, this._dialogVariant(data.lines.done, `${data.id}:done`), () => {
+              this._syncObjective();
+              this._setState(STATE.EXPLORE);
+              this.input.requestPointerLock();
+            });
+          },
+          onFailClose: () => {
+            this.hud.toast('Jessi: Noch nicht geschafft. Versuch Simon Says bitte nochmal.', 'bad');
+            this._setState(STATE.EXPLORE);
+            this.input.requestPointerLock();
+          }
+        });
+      });
+      return;
+    }
+
+    // Briefing colleague without challenge: just conversation and completion.
     if (!data.challenge) {
       this.dialog.start(data, this._dialogVariant(data.lines.intro, `${data.id}:intro`), () => {
         if (qid) this.quests.complete(qid);
-        if (data.id === 'sam') {
-          this.unlockedFloors.add('og2');
-          this.story.advanceTo('lift2');
-          this.hud.toast('Jessi: Fahr mit dem Fahrstuhl ins 2. OG zu Melina!', 'good');
-        }
         this._syncObjective();
         this._setState(STATE.EXPLORE);
       });
@@ -763,6 +811,51 @@ export class Game {
     this.hud.hidePrompt();
     this._setState(STATE.SHOP);
     this.shop.show(this.inventory, (item) => this._buy(item));
+  }
+
+  _openPingPong() {
+    this.hud.hidePrompt();
+    this._setState(STATE.MINIGAME);
+    this.pingPong.show({
+      onClose: () => {
+        this._setState(STATE.EXPLORE);
+        this.input.requestPointerLock();
+      }
+    });
+  }
+
+  _openSimonSays({ onWin, onClose, onFailClose, reward = true } = {}) {
+    this.hud.hidePrompt();
+    this._setState(STATE.MINIGAME);
+    let solved = false;
+    this.simonSays.show({
+      onWin: () => {
+        solved = true;
+        if (reward && !this.simonRewardClaimed) {
+          this.simonRewardClaimed = true;
+          this.inventory.addCoins(12);
+          this._syncHud();
+          this.hud.toast('🎨 Simon Says geschafft! +12 🪙', 'good');
+        }
+        if (onWin) onWin();
+      },
+      onClose: () => {
+        if (solved) {
+          if (onClose) onClose();
+          else {
+            this._setState(STATE.EXPLORE);
+            this.input.requestPointerLock();
+          }
+          return;
+        }
+
+        if (onFailClose) onFailClose();
+        else {
+          this._setState(STATE.EXPLORE);
+          this.input.requestPointerLock();
+        }
+      }
+    });
   }
 
   _buy(item) {
@@ -873,7 +966,8 @@ export class Game {
     else if (data.id === 'mehmet') { this.story.advanceTo('lift3'); this.unlockedFloors.add('og3'); }
     else if (data.id === 'sven') { this.story.advanceTo('lift4'); this.unlockedFloors.add('og4'); }
     else if (data.id === 'aylin') { this.story.advanceTo('lift5'); this.unlockedFloors.add('og5'); }
-    else if (data.id === 'tobias') { this.story.advanceTo('lift6'); this.unlockedFloors.add('og6'); }
+    else if (data.id === 'emre') this.story.advanceTo('britta');
+    else if (data.id === 'britta') { this.story.advanceTo('lift6'); this.unlockedFloors.add('og6'); }
     else if (data.id === 'frank') { this.story.advanceTo('lift7'); this.unlockedFloors.add('og7'); }
     else if (data.id === 'petra') { this.story.advanceTo('lift8'); this.unlockedFloors.add('og8'); }
     else if (data.id === 'jonas') this.story.advanceTo('kristof');
@@ -1158,7 +1252,7 @@ export class Game {
   }
 
   _jensQuestionEvent() {
-    const topics = ['frontend', 'product', 'backend', 'digital', 'design', 'mobile', 'facility', 'people', 'security'];
+    const topics = ['frontend', 'product', 'backend', 'digital', 'design', 'mobile', 'starmoney', 'facility', 'people', 'security'];
     const q = buildDeck(topics, 1, Math.min(3, 1 + Math.floor((this.round - 1) / 2)))[0];
     if (!q) return;
     markAsked(q);
@@ -1273,6 +1367,14 @@ export class Game {
         this._syncHud();
         this.audio.playSfx('pickup');
         this.hud.toast('🕹️ Easter Egg: XYZZY · Ein geheimer Kaffee erscheint aus dem Nichts.', 'good');
+      });
+    }
+
+    if (this.secretTextBuffer.endsWith('ABBA')) {
+      unlock('abba', 'Code: ABBA', () => {
+        this.unlockedFloors = new Set(['eg', 'og1', 'og2', 'og3', 'og4', 'og5', 'og6', 'og7', 'og8']);
+        this.audio.playSfx('win');
+        this.hud.toast('🕹️ Cheat aktiv: ABBA · Alle Etagen wurden zum Testen freigeschaltet!', 'good');
       });
     }
 

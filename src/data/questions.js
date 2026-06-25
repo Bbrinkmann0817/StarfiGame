@@ -2,13 +2,14 @@
  * Quiz question bank for the "Code-Duell" learning game.
  *
  * Questions are tagged by TOPIC so every department only asks questions from its
- * own field (Frontend → Frontend questions, App Factory → mobile questions, …).
+ * own field (Frontend → Frontend questions, App Factory → mobile questions,
+ * StarMoney → starmoney questions, …).
  *
  * Each question:
  *   { topic, difficulty: 1|2|3, q, answers:[4], correct:<index> }
  *
  * Topics map 1:1 to the departments/levels:
- *   frontend  · product · backend · digital · design · mobile · facility · people · security
+ *   frontend · product · backend · digital · design · mobile · starmoney · facility · people · security
  *
  * `q` and `answers` may contain light inline HTML (<code>…</code>) because the
  * content is fully static and authored here — never user/network input.
@@ -21,6 +22,7 @@ export const TOPIC_LABELS = {
   digital: 'DIGITAL SOLUTIONS',
   design: 'INCLUSIVE DESIGN',
   mobile: 'APP FACTORY',
+  starmoney: 'STARMONEY',
   facility: 'FACILITY MANAGEMENT',
   people: 'PEOPLE · CULTURE · PLACES',
   security: 'IT-SECURITY'
@@ -127,6 +129,12 @@ const BASE_QUESTIONS = [
   { topic: 'mobile', difficulty: 2, q: 'Warum sollte eine App auch <strong>offline</strong> sinnvoll reagieren?', answers: ['Mobile Verbindungen brechen oft ab – Nutzbarkeit erhalten', 'Offline ist verboten', 'Spart Speicher auf dem Server', 'Macht die App teurer'], correct: 0 },
   { topic: 'mobile', difficulty: 2, q: 'Was ist eine <strong>API-Anbindung</strong> in einer App?', answers: ['Die App holt/sendet Daten über eine Schnittstelle zum Server', 'Ein App-Icon', 'Ein Ladebildschirm', 'Eine Schriftart'], correct: 0 },
   { topic: 'mobile', difficulty: 3, q: 'Wozu dient <strong>Biometrie</strong> (Face ID / Fingerabdruck) in Banking-Apps?', answers: ['Sichere, bequeme Authentifizierung der Nutzer:innen', 'Schönere Animationen', 'Schnelleres WLAN', 'Mehr Speicherplatz'], correct: 0 },
+
+  // ============================== STARMONEY (Level 5b) ==============================
+  { topic: 'starmoney', difficulty: 1, q: 'Wie viele monatlich aktive Nutzer hat StarMoney ungefähr (Windows & Apps)?', answers: ['30.000', '150.000', '370.000', '730.000'], correct: 2 },
+  { topic: 'starmoney', difficulty: 2, q: 'Von ca. 64 Mio. € Umsatzerlösen lieferte StarMoney im Jahr 2025 anteilig wie viel %?', answers: ['7 %', '12 %', '19 %', '25 %'], correct: 1 },
+  { topic: 'starmoney', difficulty: 2, q: 'Wie viel Prozent der StarMoney-Nutzer sind uns seit über 10 Jahren treu?', answers: ['< 1 %', '6 %', '18 %', '38 %'], correct: 3 },
+  { topic: 'starmoney', difficulty: 2, q: 'Wie viele Aufträge werden jeden Monat mit StarMoney Windows versandt?', answers: ['Etwa 500.000', 'Etwa 800.000', 'Etwa 1.800.000', 'Etwa 2.400.000'], correct: 2 },
 
   // ============================== FACILITY MANAGEMENT (Level 6) ==============================
   { topic: 'facility', difficulty: 1, q: 'Was tust du, wenn der Feueralarm losgeht?', answers: ['Ruhig über den Fluchtweg ins Freie gehen', 'Den Aufzug nehmen', 'Erst die Mails fertig schreiben', 'Das Fenster öffnen und warten'], correct: 0 },

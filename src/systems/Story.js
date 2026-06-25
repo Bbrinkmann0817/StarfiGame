@@ -4,8 +4,8 @@
  * Game advances the story explicitly as the player completes each milestone.
  *
  * Difficulty rises floor by floor (see each colleague's challenge in npcs.js):
- *   Melina L1 · Mehmet L2 · Sven L3 · Aylin L4 · Emre L5 · Frank L6 ·
- *   Petra L7 · Viktor L8 · Kristof/Boss L9.
+ *   Melina L1 · Mehmet L2 · Sven L3 · Aylin L4 · Emre L5 · Britta/Jennifer L5 (StarMoney) ·
+ *   Frank L6 · Petra L7 · Viktor L8 · Kristof/Boss L9.
  */
 export const STEPS = [
   { id: 'enter', area: 'outside', objective: 'Geh zum Eingang und betritt das Star-Finanz-Gebäude.' },
@@ -19,7 +19,8 @@ export const STEPS = [
   { id: 'lift4', area: 'og3', objective: 'Fahr mit dem Fahrstuhl ins 4. OG (Inclusive Design Lab).' },
   { id: 'aylin', area: 'og4', objective: 'Level 4 · Design – Hilf Aylin, das Design wieder barrierefrei zu machen.' },
   { id: 'lift5', area: 'og4', objective: 'Fahr mit dem Fahrstuhl ins 5. OG (App Factory).' },
-  { id: 'tobias', area: 'og5', objective: 'Level 5 · App Factory – Hilf Emre, den App-Build zu stabilisieren.' },
+  { id: 'emre', area: 'og5', objective: 'Level 5 · App Factory – Hilf Emre, den App-Build zu stabilisieren.' },
+  { id: 'britta', area: 'og5', objective: 'Level 5 · StarMoney – Hilf Britta und Jennifer beim gemeinsamen StarMoney-Faktencheck.' },
   { id: 'lift6', area: 'og5', objective: 'Fahr mit dem Fahrstuhl ins 6. OG (Facility Management).' },
   { id: 'frank', area: 'og6', objective: 'Level 6 · Facility – Hilf Frank, die Gebäudetechnik zu beruhigen.' },
   { id: 'lift7', area: 'og6', objective: 'Fahr mit dem Fahrstuhl ins 7. OG (People · Culture · Places).' },
